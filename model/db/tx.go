@@ -9,6 +9,7 @@ import (
 	"github.com/iost-official/go-iost/account"
 	"github.com/iost-official/go-iost/common"
 	"github.com/iost-official/iost-api/model/blockchain"
+	"github.com/iost-official/iost-api/model/blockchain/rpcpb"
 )
 
 type ActionRaw struct {
@@ -85,6 +86,13 @@ func elapsed(what string) func() {
 	return func() {
 		log.Printf("%s took %v\n", what, time.Since(start))
 	}
+}
+
+func ProcessTxs(txs []*rpcpb.Transaction) err {
+	for tx := range txs {
+
+	}
+	return nil
 }
 
 func RpcGetTxByHash(txHash string) (*Tx, error) {

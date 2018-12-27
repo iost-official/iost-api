@@ -13,7 +13,7 @@ func main() {
 	config.ReadConfig()
 
 	// start tasks
-	ws.Add(6)
+	ws.Add(3)
 	// download block
 	go cron.UpdateBlocks(ws)
 	go cron.UpdateTxns(ws)

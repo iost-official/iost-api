@@ -1,6 +1,7 @@
 package cron
 
 import (
+	"github.com/iost-official/go-iost/core/block"
 	"log"
 	"sync"
 	"time"
@@ -8,106 +9,70 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/iost-official/iost-api/model/blockchain"
+	"github.com/iost-official/iost-api/model/blockchain/rpcpb"
 	"github.com/iost-official/iost-api/model/db"
 )
 
 func UpdateBlocks(ws *sync.WaitGroup) {
 	defer ws.Done()
 
-	collection, err := db.GetCollection(db.CollectionBlocks)
+	blockChannel := make(chan *rpcpb.Block, 10)
+	b := <-blockChannel
+	ticker := time.NewTicker(time.Second)
+
+	var topHeightInMongo int64
+	for range ticker.C {
+	topBlkInMongo, err := db.GetTopBlock()
+	if err != nil {
+		log.Println("updateBlock get topBlk in mongo error:", err)
+		if err.Error() != "not found" {
+			continue
+		}
+	} else {
+		topHeightInMongo = topBlkInMongo.BlockNumber + 1
+		break
+	}
+	}
+
+	for {
+		blockRspn, err := blockchain.GetBlockByNum(topHeightInMongo)
+		if nil != err {
+			log.Println("Download block", topHeightInMongo, " error", err)
+			time.Sleep(time.Second)
+			continue
+		}
+		if blockRspn.BlockResponse_Status == rpcpb.BlockResponse_PENDING {
+			log.Println("Download block", topHeightInMongo, " Pending")
+			time.Sleep(time.Second())
+			continue
+		}
+		blockChannel <- blockRspn.Block
+		log.Println("Download block", topHeightInMongo, " Succ!")
+	}
+}
+
+func InsertBlock(blockChannel chan *rpcpb.Block) error{
+	collection, err := db.GetCollection("block")
 	if nil != err {
 		log.Println("can not get blocks collection when update", err)
 		return
 	}
 
-	tmpTxCollection, err := db.GetCollection(db.CollectionTmpTxs)
-
-	if nil != err {
-		log.Println("can not get txs collection when update", err)
-		return
-	}
-
-	//record sync failed blocks
-	fBlockCollection, err := db.GetCollection(db.CollectionFBlocks)
-
-	ticker := time.NewTicker(time.Second * 2)
-
-	for range ticker.C {
-		var topHeightInChain int64
-		var topHeightInMongo int64
-
-		topBlcHeight, err := blockchain.GetCurrentBlockHeight()
+	select {
+	case b := <- blockChannel:
+		txs := b.Transactions
+		db.ProcessTxs(txs)
+		
+		b.Transactions = []*rpcpb.Transaction
+		err = collection.Insert(&block)
 
 		if err != nil {
-			log.Println("updateBlock get topBlk in chain error:", err)
-			continue
-		}
+			log.Println("updateBlock insert mongo error:", err)
 
-		topHeightInChain = topBlcHeight
-
-		topBlkInMongo, err := db.GetTopBlock()
-
-		if err != nil {
-			log.Println("updateBlock get topBlk in mongo error:", err)
-			if err.Error() != "not found" {
-				continue
-			}
-		} else {
-			topHeightInMongo = topBlkInMongo.BlockNumber + 1
-		}
-		var insertLen int
-		for ; topHeightInMongo <= topHeightInChain; topHeightInMongo++ {
-			block, txHashes, err := db.GetBlockInfoByNum(topHeightInMongo)
-
+			err := recordFailedUpdateBlock(topHeightInMongo, fBlockCollection)
 			if nil != err {
-				log.Println("UpdateBlock GetBlockInfoByNum error", err)
-
-				err := recordFailedUpdateBlock(topHeightInMongo, fBlockCollection)
-				if nil != err {
-					log.Println("UpdateBlock record sync failed block error", err)
-				}
-				continue
-			}
-
-			err = collection.Insert(block)
-
-			if err != nil {
-				log.Println("updateBlock insert mongo error:", err)
-
-				err := recordFailedUpdateBlock(topHeightInMongo, fBlockCollection)
-				if nil != err {
-					log.Println("UpdateBlock record sync failed block error", err)
-				}
-
-				continue
-			}
-
-			if nil != txHashes {
-				txs := make([]interface{}, len(*txHashes))
-				for index, txHash := range *txHashes {
-					txs[index] = db.TmpTx{
-						Hash:        txHash,
-						BlockNumber: topHeightInMongo,
-						Mark:        topHeightInMongo % 2,
-					}
-				}
-				err := tmpTxCollection.Insert(txs...)
-				if nil != err {
-					log.Println("UpdateBlock insert txs error", err)
-					err := recordFailedUpdateBlock(topHeightInMongo, fBlockCollection)
-
-					if nil != err {
-						// fix it?
-						log.Println("UpdateBlock Record failed insert error", err)
-					}
-				}
-			}
-
-			insertLen++
-			log.Println("updateBlock insert mongo height:", topHeightInMongo)
+				log.Println("UpdateBlock record sync failed block error", err)
 		}
-
-		log.Println("updateBlock inserted len: ======", insertLen)
 
 	}
 }
@@ -221,7 +186,7 @@ func UpdateBlockPay(wg *sync.WaitGroup) {
 
 	ticker := time.NewTicker(time.Second * 2)
 	for range ticker.C {
-		var topHeightInPay int64 = 0
+		var topHeightInPay int64
 		topPay, err := db.GetTopBlockPay()
 		if err != nil {
 			if err.Error() != "not found" {
