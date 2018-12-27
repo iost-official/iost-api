@@ -1,10 +1,10 @@
 package model
 
 import (
-	"explorer/model/db"
+	"model/db"
 
 	"github.com/iost-official/prototype/rpc"
-	"explorer/model/blockchain"
+	"model/blockchain"
 	"github.com/iost-official/prototype/common"
 )
 

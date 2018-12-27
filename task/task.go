@@ -2,7 +2,7 @@ package main
 
 import (
 	"sync"
-	"explorer/task/cron"
+	"task/cron"
 )
 
 var wg = new(sync.WaitGroup)

@@ -1,7 +1,7 @@
 package db
 
 import (
-	"explorer/util/transport"
+	"util/transport"
 
 	"gopkg.in/mgo.v2"
 )

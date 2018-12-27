@@ -3,7 +3,7 @@ package model
 import (
 	"encoding/hex"
 
-	"explorer/model/db"
+	"model/db"
 
 	"github.com/iost-official/prototype/rpc"
 )

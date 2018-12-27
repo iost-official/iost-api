@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"explorer/model/db"
+	"model/db"
 	"github.com/labstack/echo"
 	"net/http"
 	"strconv"

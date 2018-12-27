@@ -2,16 +2,16 @@ package controller
 
 import (
 	"errors"
-	"explorer/model"
-	"explorer/model/db"
-	"explorer/util/session"
+	"model"
+	"model/db"
+	"util/session"
 	"net/http"
 	"regexp"
 	"strconv"
 
 	"bytes"
 	"encoding/hex"
-	"explorer/model/blockchain"
+	"model/blockchain"
 	"github.com/iost-official/prototype/common"
 	"github.com/labstack/echo"
 	"log"

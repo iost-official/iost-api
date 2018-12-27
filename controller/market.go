@@ -3,7 +3,7 @@ package controller
 import (
 	"net/http"
 
-	"explorer/model"
+	"model"
 
 	"github.com/labstack/echo"
 )

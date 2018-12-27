@@ -1,7 +1,7 @@
 package main
 
 import (
-	"explorer/controller"
+	"controller"
 
 	"github.com/labstack/echo"
 )

@@ -4,7 +4,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"log"
 	"time"
-	"explorer/model/cache"
+	"model/cache"
 )
 
 type BetAddress struct {

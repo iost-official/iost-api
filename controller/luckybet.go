@@ -3,9 +3,9 @@ package controller
 import (
 	"bytes"
 	"encoding/hex"
-	"explorer/model"
-	"explorer/model/blockchain"
-	"explorer/model/db"
+	"model"
+	"model/blockchain"
+	"model/db"
 	"github.com/iost-official/prototype/common"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"

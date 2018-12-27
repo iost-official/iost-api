@@ -2,11 +2,11 @@ package cron
 
 import (
 	"sync"
-	"explorer/model/db"
+	"model/db"
 	"log"
 	"gopkg.in/mgo.v2/bson"
 	"time"
-	"explorer/model/blockchain"
+	"model/blockchain"
 )
 
 func UpdateAccounts(wg *sync.WaitGroup) {

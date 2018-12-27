@@ -3,10 +3,10 @@ package controller
 import (
 	"strconv"
 
-	"explorer/model"
-	"explorer/model/blockchain"
-	"explorer/model/cache"
-	"explorer/model/db"
+	"model"
+	"model/blockchain"
+	"model/cache"
+	"model/db"
 	"fmt"
 	"github.com/iost-official/prototype/common"
 	"github.com/iost-official/prototype/core/tx"

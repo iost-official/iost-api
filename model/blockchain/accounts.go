@@ -10,7 +10,7 @@ import (
 
 	"github.com/iost-official/prototype/core/state"
 	"github.com/iost-official/prototype/rpc"
-	"explorer/model/db"
+	"model/db"
 	"log"
 )
 

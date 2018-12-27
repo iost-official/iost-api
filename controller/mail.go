@@ -2,7 +2,7 @@ package controller
 
 import (
 	"github.com/labstack/echo"
-	"explorer/model/mail"
+	"model/mail"
 	"log"
 	"net/http"
 )

@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"explorer/model/blockchain"
-	"explorer/model/db"
+	"model/blockchain"
+	"model/db"
 
 	"gopkg.in/mgo.v2/bson"
 )

@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"explorer/model"
+	"model"
 	"github.com/labstack/echo"
 	"net/http"
 	"strconv"
-	"explorer/model/db"
+	"model/db"
 )
 
 const (

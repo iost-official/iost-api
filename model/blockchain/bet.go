@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/iost-official/prototype/transport"
-	"explorer/model/db"
+	"model/db"
 
 	"golang.org/x/net/context"
 
@@ -14,7 +14,7 @@ import (
 	"github.com/iost-official/prototype/core/state"
 	"strconv"
 	"github.com/iost-official/prototype/common"
-	"explorer/model/cache"
+	"model/cache"
 )
 
 const (

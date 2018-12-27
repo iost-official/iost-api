@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"explorer/model/db"
+	"model/db"
 
 	"gopkg.in/mgo.v2/bson"
 
-	"explorer/model/blockchain"
+	"model/blockchain"
 	"github.com/iost-official/prototype/rpc"
 )
 
