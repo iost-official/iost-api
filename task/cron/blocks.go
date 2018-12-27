@@ -1,7 +1,6 @@
 package cron
 
 import (
-	"github.com/iost-official/go-iost/core/block"
 	"log"
 	"sync"
 	"time"
@@ -17,33 +16,32 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 	defer ws.Done()
 
 	blockChannel := make(chan *rpcpb.Block, 10)
-	b := <-blockChannel
+	go insertBlock(blockChannel)
+
 	ticker := time.NewTicker(time.Second)
 
 	var topHeightInMongo int64
 	for range ticker.C {
-	topBlkInMongo, err := db.GetTopBlock()
-	if err != nil {
-		log.Println("updateBlock get topBlk in mongo error:", err)
-		if err.Error() != "not found" {
+		topBlkInMongo, err := db.GetTopBlock()
+		if err != nil {
+			log.Println("updateBlock get topBlk in mongo error:", err)
 			continue
 		}
-	} else {
+
 		topHeightInMongo = topBlkInMongo.BlockNumber + 1
 		break
 	}
-	}
 
 	for {
-		blockRspn, err := blockchain.GetBlockByNum(topHeightInMongo)
-		if nil != err {
-			log.Println("Download block", topHeightInMongo, " error", err)
+		blockRspn, err := blockchain.GetBlockByNum(topHeightInMongo, true)
+		if err != nil {
+			log.Println("Download block", topHeightInMongo, "error:", err)
 			time.Sleep(time.Second)
 			continue
 		}
-		if blockRspn.BlockResponse_Status == rpcpb.BlockResponse_PENDING {
-			log.Println("Download block", topHeightInMongo, " Pending")
-			time.Sleep(time.Second())
+		if blockRspn.Status == rpcpb.BlockResponse_PENDING {
+			log.Println("Download block", topHeightInMongo, "Pending")
+			time.Sleep(time.Second)
 			continue
 		}
 		blockChannel <- blockRspn.Block
@@ -51,120 +49,28 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 	}
 }
 
-func InsertBlock(blockChannel chan *rpcpb.Block) error{
+func insertBlock(blockChannel chan *rpcpb.Block) {
 	collection, err := db.GetCollection("block")
-	if nil != err {
+	if err != nil {
 		log.Println("can not get blocks collection when update", err)
 		return
 	}
 
-	select {
-	case b := <- blockChannel:
-		txs := b.Transactions
-		db.ProcessTxs(txs)
-		
-		b.Transactions = []*rpcpb.Transaction
-		err = collection.Insert(&block)
+	for {
+		select {
+		case b := <-blockChannel:
+			txs := b.Transactions
 
-		if err != nil {
-			log.Println("updateBlock insert mongo error:", err)
+			db.ProcessTxs(txs)
 
-			err := recordFailedUpdateBlock(topHeightInMongo, fBlockCollection)
-			if nil != err {
-				log.Println("UpdateBlock record sync failed block error", err)
-		}
-
-	}
-}
-
-func ProcessFailedSyncBlocks(ws *sync.WaitGroup) {
-	defer ws.Done()
-
-	collection, err := db.GetCollection(db.CollectionBlocks)
-	if nil != err {
-		log.Println("can not get blocks collection when update", err)
-		return
-	}
-
-	fBlockCollection, err := db.GetCollection(db.CollectionFBlocks)
-	if nil != err {
-		log.Println("Process failed sync blocks get f blocks collection error", err)
-		return
-	}
-
-	tmpTxCollection, err := db.GetCollection(db.CollectionTmpTxs)
-
-	if nil != err {
-		log.Println("Process failed sync blocks get txs collection error", err)
-		return
-	}
-
-	query := bson.M{
-		"processed": false,
-		"retryTimes": bson.M{
-			"$lte": 5,
-		},
-	}
-
-	ticker := time.NewTicker(time.Second * 2)
-
-	for range ticker.C {
-		var fBlockList = make([]*db.FailBlock, 0)
-		fBlockCollection.Find(query).Sort("blockNumber").All(&fBlockList)
-		for _, fBlock := range fBlockList {
-			block, txHashes, err := db.GetBlockInfoByNum(fBlock.BlockNumber)
+			b.Transactions = make([]*rpcpb.Transaction, 0)
+			err = collection.Insert(&b)
 
 			if err != nil {
-				log.Println("Process failed blocks rpc call error:", err)
-				fBlock.RetryTimes++
-				fBlockCollection.Update(bson.M{"blockNumber": fBlock.BlockNumber}, bson.M{"$set": bson.M{
-					"retryTimes": fBlock.RetryTimes,
-				}})
-				continue
+				log.Println("updateBlock insert mongo error:", err)
 			}
+		default:
 
-			count, err := collection.Find(bson.M{"blockNumber": fBlock.BlockNumber}).Count()
-
-			if nil != err {
-				log.Println("Process failed blocks count error", err)
-				continue
-			}
-
-			if count == 0 {
-				err = collection.Insert(block)
-
-				if nil != err {
-					log.Println("Process failed blocks insert block error", err)
-					fBlock.RetryTimes++
-					fBlockCollection.Update(bson.M{"blockNumber": fBlock.BlockNumber}, bson.M{"$set": bson.M{
-						"retryTimes": fBlock.RetryTimes,
-					}})
-					continue
-				}
-			}
-
-			if nil != txHashes {
-				txs := make([]interface{}, len(*txHashes))
-				for index, txHash := range *txHashes {
-					txs[index] = db.TmpTx{
-						Hash:        txHash,
-						BlockNumber: fBlock.BlockNumber,
-						Mark:        fBlock.BlockNumber % 2,
-					}
-				}
-				err := tmpTxCollection.Insert(txs...)
-				if nil != err {
-					fBlock.RetryTimes++
-					fBlockCollection.Update(bson.M{"blockNumber": fBlock.BlockNumber}, bson.M{"$set": bson.M{
-						"retryTimes": fBlock.RetryTimes,
-					}})
-					log.Println("UpdateBlock2 insert txs error", err)
-					continue
-				}
-			}
-			fBlockCollection.Update(bson.M{"blockNumber": fBlock.BlockNumber}, bson.M{"$set": bson.M{
-				"processed": true,
-			}})
 		}
 	}
 }
