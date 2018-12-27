@@ -1,19 +1,24 @@
 package main
 
 import (
+	"github.com/iost-official/explorer/backend/config"
+	"github.com/iost-official/explorer/backend/task/cron"
 	"sync"
-	"task/cron"
 )
 
-var wg = new(sync.WaitGroup)
+var ws = new(sync.WaitGroup)
 
 func main()  {
-	wg.Add(5)
-	go cron.UpdateBlocks(wg)
-	go cron.UpdateTxs(wg)
-	go cron.UpdateTxnDetail(wg)
-	go cron.UpdateBlockPay(wg)
-	go cron.UpdateAccounts(wg)
-	go cron.UpdateBet(wg)
-	wg.Wait()
+	config.ReadConfig()
+
+	// start tasks
+	ws.Add(7)
+	go cron.UpdateBlocks(ws)
+	go cron.ProcessFailedSyncBlocks(ws)
+	go cron.UpdateTxns(ws, 0)
+	go cron.UpdateTxns(ws, 1)
+	go cron.UpdateRpcErrTxns(ws)
+	go cron.UpdateBlockPay(ws)
+	go cron.UpdateAccounts(ws)
+	ws.Wait()
 }

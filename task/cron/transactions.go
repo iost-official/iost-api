@@ -1,174 +1,232 @@
 package cron
 
 import (
+	"github.com/globalsign/mgo/bson"
+	"github.com/iost-official/explorer/backend/model/db"
 	"log"
 	"sync"
 	"time"
-
-	"model/db"
-
-	"gopkg.in/mgo.v2/bson"
-
-	"model/blockchain"
-	"github.com/iost-official/prototype/rpc"
 )
 
-func UpdateTxs(wg *sync.WaitGroup) {
+func UpdateTxns(wg *sync.WaitGroup, mark int) {
 	defer wg.Done()
 
-	blkC, err := db.GetCollection("blocks")
-	if err != nil {
-		log.Println("UpdateTxns get block collection error:", err)
-		return
-	}
+	ticker := time.NewTicker(time.Second)
 
-	txnC, err := db.GetCollection("txns")
+	txnC, err := db.GetCollection(db.CollectionTxs)
+
 	if err != nil {
 		log.Println("UpdateTxns get txns collection error:", err)
 		return
 	}
 
-	ticker := time.NewTicker(time.Second * 2)
-	for _ = range ticker.C {
-		var (
-			topTxBlkHeight      int64 = 0
-			topBlkHeightInMongo int64 = 0
-		)
-		topTxInMongo, err := db.GetTopTxn()
-		if err != nil {
-			if err.Error() != "not found" {
-				continue
-			}
-		} else {
-			topTxBlkHeight = topTxInMongo.BlockHeight
-		}
+	tmpTxc, err := db.GetCollection(db.CollectionTmpTxs)
 
-		topBlkInMongo, err := db.GetTopBlock()
-		if err != nil {
-			log.Println("UpdateTxs get topBlk in mongo error:", err)
-			continue
-		} else {
-			topBlkHeightInMongo = topBlkInMongo.Head.Number
-		}
+	if nil != err {
+		log.Println("Update txns get tmp txs collection error:", err)
+		return
+	}
 
-		if topBlkHeightInMongo == topTxBlkHeight {
-			log.Println("UpdateTxs txn height equals blk height, continue...")
-			continue
-		}
+	flatxnC, err := db.GetCollection(db.CollectionFlatTx)
 
-		log.Printf("UpdateTxs topTxBlkHeight: %d topBlkHeightInMongo: %d\n", topTxBlkHeight, topBlkHeightInMongo)
+	if err != nil {
+		log.Println("UpdateTxns get flatxs collection error:", err)
+		return
+	}
 
-		blkList := make([]*rpc.BlockInfo, 0)
-		blkQuery := bson.M{
-			"head.number": bson.M{
-				"$gt": topTxBlkHeight,
-			},
-		}
+	rpcErrtxc, err := db.GetCollection(db.CollectionRpcTxs)
 
-		err = blkC.Find(blkQuery).Limit(10).All(&blkList)
-		if err != nil {
-			log.Println("UpdateTxs getBlk error:", err)
-			continue
-		}
+	if nil != err {
+		log.Println("Update txns get rpc err collection error:", err)
+		return
+	}
 
-		for _, blk := range blkList {
-			txnList := make([]interface{}, 0)
-			queryStart := time.Now()
-			for _, txnKey := range blk.TxList {
-				txn, err := blockchain.GetTxnByKey(txnKey)
-				if err != nil {
-					log.Println("UpdateTxns get tx error:", err)
+	var startExternalId bson.ObjectId = ""
+
+	for range ticker.C {
+		step := 2000
+		var txns = make([]*db.TmpTx, 0)
+
+		var txn db.Tx
+		var query = bson.M{"mark": mark}
+		if "" == startExternalId {
+			err = txnC.Find(bson.M{"mark": mark}).Sort("-externalId").Limit(1).One(&txn)
+			if nil != err {
+				if err.Error() != "not found" {
+					log.Println("update tmpTx query error:", err)
 					continue
 				}
-				txnList = append(txnList, &db.ExplorerTx{
-					BlockHeight: blk.Head.Number,
-					Tx:          txn,
-					TxHash:      txn.Hash(),
-				})
+			} else {
+				startExternalId = txn.ExternalId
+				query = bson.M{"_id": bson.M{"$gt": startExternalId},
+					"mark": mark}
 			}
-			if len(txnList) == 0 {
-				txn := &db.ExplorerTx{
-					BlockHeight: blk.Head.Number,
-					Tx:          nil,
-				}
-				txnList = append(txnList, txn)
-			}
-			queryTime := time.Since(queryStart)
+		} else {
+			query = bson.M{"_id": bson.M{"$gt": startExternalId},
+				"mark": mark}
+		}
 
-			insertStart := time.Now()
-			bulk := txnC.Bulk()
-			bulk.Unordered()
-			bulk.Insert(txnList...)
-			_, err = bulk.Run()
+		err = tmpTxc.Find(query).Sort("_id").Limit(step).All(&txns)
+		if nil != err {
+			log.Println("query tmp txs error", err)
+			continue
+		}
+
+		log.Println("need update txs length:", len(txns))
+
+		var flatxs []interface{}
+		var txs []interface{}
+		var rpcErrTxs []interface{}
+
+		for _, tmpTx := range txns {
+
+			newTxn, err := db.RpcGetTxByHash(tmpTx.Hash)
+
 			if err != nil {
-				log.Println("updateTxns blk:", blk.Head.Number, "txns:", len(txnList), "insert mongo error:", err)
+				log.Println("UpdateTxns RpcGetTxByHash error:", err)
+				tx := db.Tx{BlockNumber: tmpTx.BlockNumber, Hash: tmpTx.Hash, Mark: tmpTx.Mark, ExternalId: tmpTx.Id}
+				rpcErrTxs = append(rpcErrTxs, tx)
 				continue
 			}
-			log.Println("updateTxns blk:", blk.Head.Number, "txns:", len(txnList), "insert success, time:", time.Since(insertStart), "search time:", queryTime)
+			newTxn.BlockNumber = tmpTx.BlockNumber
+
+			flatxns := newTxn.ToFlatTx()
+
+			for _, tx := range flatxns {
+				flatxs = append(flatxs, *tx)
+			}
+
+			newTxn.Mark = tmpTx.Mark
+			newTxn.ExternalId = tmpTx.Id
+			startExternalId = newTxn.ExternalId
+			txs = append(txs, *newTxn)
+		}
+
+		if len(txs) != 0 {
+			err := txnC.Insert(txs...)
+			if nil != err {
+				log.Println("fail to insert txs, err: ", err)
+			} else {
+				log.Println("update txs, size: ", len(txs))
+			}
+		}
+
+		if len(rpcErrTxs) != 0 {
+			err := rpcErrtxc.Insert(rpcErrTxs...)
+			if nil != err {
+				log.Println("fail to insert rpc err txs, err: ", err)
+			}
+		}
+
+		if len(flatxs) != 0 {
+			err := flatxnC.Insert(flatxs...)
+			if nil != err {
+				log.Println("fail to insert flatxs, err: ", err)
+			} else {
+				log.Println("update flatxs, size: ", len(flatxs))
+			}
 		}
 	}
 }
 
-func UpdateTxnDetail(wg *sync.WaitGroup) {
-	defer wg.Done()
+func UpdateRpcErrTxns(wg *sync.WaitGroup) {
+	wg.Done()
+	ticker := time.NewTicker(time.Second * 2)
 
-	txnC, err := db.GetCollection("txns")
-	if err != nil {
-		log.Println("UpdateTxnDetail get txns collection error:", err)
+	rpcErrtxc, err := db.GetCollection(db.CollectionRpcTxs)
+
+	if nil != err {
+		log.Println("Update rpc err txns get rpc err collection error:", err)
 		return
 	}
 
-	txnDC, err := db.GetCollection("txnsdetail")
+	flatxnC, err := db.GetCollection(db.CollectionFlatTx)
+
 	if err != nil {
-		log.Println("UpdateTxnDetail get txns-detail collection error:", err)
+		log.Println("UpdateTxns get flatxs collection error:", err)
 		return
 	}
 
-	txnQuery := bson.M{
-		"tx": bson.M{
-			"$ne": nil,
-		},
+	txnC, err := db.GetCollection(db.CollectionTxs)
+
+	if err != nil {
+		log.Println("UpdateTxns get txns collection error:", err)
+		return
 	}
 
-	ticker := time.NewTicker(time.Second)
-	for _ = range ticker.C {
-		topTxnDetail, err := db.GetTopTxnDetail()
-		if err != nil && err.Error() != "not found" {
-			continue
-		}
-		if err == nil {
-			txnQuery["_id"] = bson.M{
-				"$gt": topTxnDetail.MgoSourceId,
+	for range ticker.C {
+		step := 2000
+		var txns = make([]*db.Tx, 0)
+
+		err := rpcErrtxc.Find(nil).Limit(step).All(&txns)
+
+		if nil != err {
+			if err.Error() != "not found" {
+				log.Println("Update rpc err txs error", err)
 			}
-		}
-
-		var txnList []*db.ExplorerTx
-		err = txnC.Find(txnQuery).Sort("_id").Limit(5000).All(&txnList)
-		if err != nil {
-			log.Println("UpdateTxnDetail get txnList error:", err)
 			continue
 		}
 
-		if len(txnList) == 0 {
-			time.Sleep(time.Second * 2)
-			log.Println("UpdateTxnDetail details height equals txn, continue...")
-			continue
-		}
+		var flatxs []interface{}
+		var txs []interface{}
 
-		var mgoTxList []interface{}
-		for _, txn := range txnList {
-			mgoTx := txn.GenerateMgoTx()
-			if mgoTx == nil {
+		for _, txn := range txns {
+
+			var exits db.Tx
+
+			err := txnC.Find(bson.M{"_id": txn.ExternalId}).Limit(1).One(&exits)
+
+			if nil == err {
+				log.Println("txs already synced")
+				err := rpcErrtxc.Remove(bson.M{"externalId": txn.ExternalId})
+				if nil != err {
+					log.Println("fail to remove rpc err txs, error:", err)
+				}
 				continue
 			}
-			mgoTxList = append(mgoTxList, mgoTx)
+
+			newTxn, err := db.RpcGetTxByHash(txn.Hash)
+
+			if err != nil {
+				log.Println("UpdateTxns RpcGetTxByHash error:", err)
+				continue
+			}
+
+			flatxns := newTxn.ToFlatTx()
+
+			for _, tx := range flatxns {
+				flatxs = append(flatxs, *tx)
+			}
+
+			newTxn.BlockNumber = txn.BlockNumber
+			newTxn.ExternalId = txn.ExternalId
+			newTxn.Mark = txn.Mark
+			txs = append(txs, *newTxn)
+
+			er := rpcErrtxc.Remove(bson.M{"externalId": txn.ExternalId})
+
+			if nil != er {
+				log.Println("remove rpc err tx error:", er)
+			}
 		}
 
-		err = txnDC.Insert(mgoTxList...)
-		if err != nil {
-			log.Println("UpdateTxnDetail insert txnDC error:", err, "len:", len(mgoTxList))
-			continue
+		if len(txs) != 0 {
+			err := txnC.Insert(txs...)
+			if nil != err {
+				log.Println("fail to insert txs, err: ", err)
+			} else {
+				log.Println("update rpc err txs, size: ", len(txs))
+			}
 		}
-		log.Println("UpdateTxnDetail insert txnDC success, len:", len(mgoTxList))
+
+		if len(flatxs) != 0 {
+			err := flatxnC.Insert(flatxs...)
+			if nil != err {
+				log.Println("fail to insert flatxs, err: ", err)
+			} else {
+				log.Println("update rpc err flatxs, size: ", len(flatxs))
+			}
+		}
 	}
+
 }

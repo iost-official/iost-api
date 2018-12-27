@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"log"
@@ -10,36 +11,35 @@ import (
 	"strings"
 	"time"
 
-	"util/session"
-
+	"github.com/iost-official/explorer/backend/model/db"
+	"github.com/iost-official/explorer/backend/util/session"
 	"github.com/labstack/echo"
-	"encoding/json"
-	"model/db"
 )
 
 const (
 	VerifyCodeLen     = 6
 	MobileMaxSendTime = 1
 
-	AccountSid        = "AC47b8c0b922a3eb016f263869ac0d2951"
-	AuthToken         = "0daee011527a806c76792d46cd71dd13"
-	TwilioSmsUrl      = "https://api.twilio.com/2010-04-01/Accounts/" + AccountSid + "/Messages.json"
+	AccountSid   = "ACbb9c8973309348ffca81bb71291b3a4c"
+	AuthToken    = "1e224c4c3166d94b0578a967ff1dd0ac"
+	TwilioSmsUrl = "https://api.twilio.com/2010-04-01/Accounts/" + AccountSid + "/Messages.json"
 )
-
-type CommOutput struct {
-	Ret int    `json:"ret"`
-	Msg string `json:"msg"`
-}
 
 var (
 	httpClient     *http.Client
 	verifySeed     = rand.NewSource(time.Now().UnixNano())
 	verifyCodeList = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-	ErrEmptySSID = errors.New("empty session id")
-	ErrGreCaptcha = errors.New("reCAPTCHA check failed")
+	ErrEmptySSID         = errors.New("empty session id")
+	ErrGreCaptcha        = errors.New("reCAPTCHA check failed")
 	ErrMobileApplyExceed = errors.New("mobile applied earlier today")
 )
+
+type GCAPResponse struct {
+	Success     bool   `json:"success"`
+	ChallengeTs string `json:"challengeTs"`
+	Hostname    string `json:"hostname"`
+}
 
 func init() {
 	httpClient = &http.Client{
@@ -50,27 +50,25 @@ func init() {
 }
 
 func SendSMS(c echo.Context) error {
-	c.Response().Header().Set("Access-Control-Allow-Origin", "*")
 	mobile := c.FormValue("mobile")
 	gcaptcha := c.FormValue("gcaptcha")
 
 	remoteip := c.Request().Header.Get("Iost_Remote_Addr")
 	if !verifyGCAP(gcaptcha, remoteip) {
-		log.Println(ErrGreCaptcha.Error())
-		return c.JSON(http.StatusOK, &CommOutput{1, ErrGreCaptcha.Error()})
+		return ErrGreCaptcha
 	}
 
 	if len(mobile) < 10 || mobile[0] != '+' {
-		return c.JSON(http.StatusOK, &CommOutput{2, ErrInvalidInput.Error()})
+		return ErrInvalidInput
 	}
 
 	mobileSendNum, err := db.GetApplyNumTodayByMobile(mobile)
 	if err != nil {
-		return c.JSON(http.StatusOK, &CommOutput{3, err.Error()})
+		return err
 	}
 
 	if mobileSendNum >= MobileMaxSendTime {
-		return c.JSON(http.StatusOK, &CommOutput{4, ErrMobileApplyExceed.Error()})
+		return ErrMobileApplyExceed
 	}
 
 	sess, _ := session.GlobalSessions.SessionStart(c.Response(), c.Request())
@@ -85,10 +83,8 @@ func SendSMS(c echo.Context) error {
 	log.Printf("sendSMS ssid: %s, vc: %s\n", sess.SessionID(), vc)
 
 	mobileSendNum++
-	
 
-	c.Response().Header().Set("Access-Control-Allow-Origin", "*")
-	return c.JSON(http.StatusOK, &CommOutput{0, "ok"})
+	return c.JSON(http.StatusOK, FormatResponse(&CommOutput{0, "ok"}))
 }
 
 func sendSMS(number string) (string, error) {
@@ -96,7 +92,7 @@ func sendSMS(number string) (string, error) {
 
 	postData := url.Values{}
 	postData.Set("To", number)
-	postData.Set("From", "+13192642988")
+	postData.Set("From", "+12568183697")
 	postData.Set("Body", "[IOST] verification code: "+vc)
 
 	req, _ := http.NewRequest("POST", TwilioSmsUrl, strings.NewReader(postData.Encode()))
@@ -106,14 +102,12 @@ func sendSMS(number string) (string, error) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		log.Println("sendSMS error:", err)
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("sendSMS error:", err)
 		return "", err
 	}
 

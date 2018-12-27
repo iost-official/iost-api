@@ -1,12 +1,9 @@
 package db
 
 import (
-	"util/transport"
-
-	"gopkg.in/mgo.v2"
+	"github.com/globalsign/mgo"
+	"github.com/iost-official/explorer/backend/util/transport"
 )
-
-const Db = "explorer"
 
 func GetDb() (*mgo.Database, error) {
 	mongoClient, err := transport.GetMongoClient(MongoLink)

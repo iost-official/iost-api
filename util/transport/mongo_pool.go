@@ -1,10 +1,9 @@
 package transport
 
 import (
+	"github.com/globalsign/mgo"
 	"sync"
 	"time"
-
-	"gopkg.in/mgo.v2"
 )
 
 var (
@@ -31,6 +30,7 @@ func GetMongoClient(address string) (*mgo.Session, error) {
 	// to do. close session
 
 	session.SetMode(mgo.Eventual, true)
+	session.SetSocketTimeout(time.Minute)
 
 	mongoSessionMap[address] = session
 	return session, nil

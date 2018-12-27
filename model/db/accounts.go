@@ -4,14 +4,17 @@ import (
 	"log"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo/bson"
+	"github.com/iost-official/explorer/backend/model/blkchain"
+	"github.com/iost-official/explorer/backend/util"
+	"github.com/spf13/viper"
 )
 
 type Account struct {
 	Address string  `json:"address"`
 	Balance float64 `json:"balance"`
 	Percent float64 `json:"percent"`
-	TxCount int     `json:"tx_count"`
+	TxCount int     `bson:"tx_count" json:"txCount"`
 }
 
 type ApplyTestIOST struct {
@@ -19,7 +22,7 @@ type ApplyTestIOST struct {
 	Amount    float64 `json:"amount"`
 	Email     string  `json:"email"`
 	Mobile    string  `json:"mobile"`
-	ApplyTime int64   `json:"apply_time"`
+	ApplyTime int64   `json:"applyTime"`
 }
 
 type AddressNonce struct {
@@ -27,16 +30,21 @@ type AddressNonce struct {
 	Nonce   int64  `json:"nonce"`
 }
 
+type JsonFlatTx struct {
+	FlatTx
+	Age     string `json:"age"`
+	UTCTime string `json:"utcTime"`
+}
+
 func GetAccounts(start, limit int) ([]*Account, error) {
-	accountC, err := GetCollection("accounts")
+	accountC, err := GetCollection(CollectionAccount)
 	if err != nil {
-		log.Println("GetAccounts get collection error:", err)
 		return nil, err
 	}
-
-	query := bson.M{
-		"balance": bson.M{"$ne": 0},
-	}
+	//query := bson.M{
+	//	"balance": bson.M{"$ne": 0},
+	//}
+	query := bson.M{}
 	var accountList []*Account
 	err = accountC.Find(query).Sort("-balance").Skip(start).Limit(limit).All(&accountList)
 	if err != nil {
@@ -47,9 +55,8 @@ func GetAccounts(start, limit int) ([]*Account, error) {
 }
 
 func GetAccountByAddress(address string) (*Account, error) {
-	accountC, err := GetCollection("accounts")
+	accountC, err := GetCollection(CollectionAccount)
 	if err != nil {
-		log.Println("GetAccountByAddress get collection error:", err)
 		return nil, err
 	}
 
@@ -67,22 +74,19 @@ func GetAccountByAddress(address string) (*Account, error) {
 }
 
 func GetAccountsTotalLen() (int, error) {
-	accountC, err := GetCollection("accounts")
+	accountC, err := GetCollection(CollectionAccount)
 	if err != nil {
-		log.Println("GetAccounts get collection error:", err)
 		return 0, err
 	}
-
-	query := bson.M{
-		"balance": bson.M{"$ne": 0},
-	}
-	totalLen, err := accountC.Find(query).Count()
-
-	return totalLen, err
+	//query := bson.M{
+	//	"balance": bson.M{"$ne": 0},
+	//}
+	query := bson.M{}
+	return accountC.Find(query).Count()
 }
 
 func GetAccountLastPage(eachPage int64) (int64, error) {
-	accountC, err := GetCollection("accounts")
+	accountC, err := GetCollection(CollectionAccount)
 	if err != nil {
 		log.Println("GetAccounts get collection error:", err)
 		return 0, err
@@ -109,7 +113,7 @@ func GetAccountLastPage(eachPage int64) (int64, error) {
 }
 
 func GetAccountTxnLastPage(address string, eachPage int64) (int64, error) {
-	txnLen, err := GetTxnDetailLenByAccount(address)
+	txnLen, err := GetFlatTxnLenByAccount(address)
 	if err != nil {
 		return 0, err
 	}
@@ -130,7 +134,7 @@ func GetAccountTxnLastPage(address string, eachPage int64) (int64, error) {
 }
 
 func SaveApplyTestIOST(at *ApplyTestIOST) error {
-	applyC, err := GetCollection("applyTestIOST")
+	applyC, err := GetCollection(CollectionApplyIost)
 	if err != nil {
 		log.Println("SaveApplyTestIost get collection error:", err)
 		return err
@@ -140,7 +144,7 @@ func SaveApplyTestIOST(at *ApplyTestIOST) error {
 }
 
 func GetApplyNumTodayByMobile(mobile string) (int, error) {
-	applyC, err := GetCollection("applyTestIOST")
+	applyC, err := GetCollection(CollectionApplyIost)
 	if err != nil {
 		log.Println("SaveApplyTestIost get collection error:", err)
 		return 0, err
@@ -190,4 +194,69 @@ func GetAddressNonce(address string) (int64, error) {
 	}
 
 	return addressNonce.Nonce, nil
+}
+
+func GetFlatTxnLenByAccount(account string) (int, error) {
+	txnDC, err := GetCollection(CollectionFlatTx)
+
+	if err != nil || account == "" {
+		log.Println("GetFlatTxnLenByAccount CollectionFlatTx collection error:", err)
+		return 0, err
+	}
+
+	query := bson.M{
+		"$or": []bson.M{
+			bson.M{"from": account},
+			bson.M{"to": account},
+			bson.M{"publisher": account},
+		},
+	}
+
+	return txnDC.Find(query).Count()
+}
+
+func GetAccountTxCount(address string) (int, error) {
+	ftxCol, err := GetCollection(CollectionFlatTx)
+	if err != nil {
+		return 0, err
+	}
+	num, err := ftxCol.Find(bson.M{"$or": []bson.M{
+		bson.M{"from": address},
+		bson.M{"to": address},
+		bson.M{"publisher": address},
+	}}).Count()
+	return num, err
+}
+
+func GetTxnListByAccount(account string, start, limit int) ([]*JsonFlatTx, error) {
+	txnDC, err := GetCollection(CollectionFlatTx)
+	if err != nil {
+		return nil, err
+	}
+	query := bson.M{
+		"$or": []bson.M{
+			bson.M{"from": account},
+			bson.M{"to": account},
+		},
+	}
+	var txnList []*FlatTx
+	err = txnDC.Find(query).Sort("-blockNumber").Skip(start).Limit(limit).All(&txnList)
+	if err != nil {
+		return nil, err
+	}
+	jsonTx := make([]*JsonFlatTx, len(txnList))
+	for i, v := range txnList {
+		timestamp := v.Time / time.Second.Nanoseconds()
+		jsonTx[i] = &JsonFlatTx{
+			FlatTx:  *v,
+			Age:     util.ModifyBlockIntToTimeStr(timestamp),
+			UTCTime: util.FormatUTCTime(timestamp),
+		}
+	}
+	return jsonTx, nil
+}
+
+func TransferIOSTToAddress(address string, amount float64) ([]byte, error) {
+	accountInfo := viper.GetStringMapString("transferAccount")
+	return blkchain.Transfer(accountInfo["address"], address, int64(amount), 10000, 1, 1000, accountInfo["key"])
 }
