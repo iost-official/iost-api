@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/iost-official/prototype/consensus/common"
 )
 
 func modifyIntToTimeStr(intTime int64) string {
