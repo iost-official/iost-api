@@ -98,7 +98,7 @@ func insertTxs(txs []*rpcpb.Transaction) {
 	txnC, err := db.GetCollection(db.CollectionTxs)
 	flatTxs := convertTxs(txs)
 	for {
-		err := txnC.Insert(txs...)
+		err := txnC.Insert(flatTxs...)
 		if nil != err {
 			log.Println("fail to insert txs, err: ", err)
 		} else {
