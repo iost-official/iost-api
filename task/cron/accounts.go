@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/iost-official/iost-api/model/blkchain"
+	"github.com/iost-official/iost-api/model/blockchain"
 	"github.com/iost-official/iost-api/model/db"
 )
 
@@ -40,7 +40,7 @@ func UpdateAccounts(wg *sync.WaitGroup) {
 			// ===== update from account
 			var fromB int64
 			if ft.From[0:4] == "IOST" { // IOST 地址才会获取
-				fromB, err = blkchain.GetBalance(ft.From)
+				fromB, err = blockchain.GetBalance(ft.From)
 				if err != nil {
 					fmt.Println("Get balance failed", err)
 				}
@@ -57,7 +57,7 @@ func UpdateAccounts(wg *sync.WaitGroup) {
 			var toB int64
 			// ====== update to account
 			if ft.To[0:4] == "IOST" {
-				toB, err = blkchain.GetBalance(ft.To)
+				toB, err = blockchain.GetBalance(ft.To)
 				if err != nil {
 					fmt.Println("Get balance failed", err)
 				}

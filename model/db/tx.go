@@ -8,7 +8,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/iost-official/go-iost/account"
 	"github.com/iost-official/go-iost/common"
-	"github.com/iost-official/iost-api/model/blkchain"
+	"github.com/iost-official/iost-api/model/blockchain"
 )
 
 type ActionRaw struct {
@@ -89,7 +89,7 @@ func elapsed(what string) func() {
 
 func RpcGetTxByHash(txHash string) (*Tx, error) {
 
-	txRes, err := blkchain.GetTxByHash(txHash)
+	txRes, err := blockchain.GetTxByHash(txHash)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func RpcGetTxByHash(txHash string) (*Tx, error) {
 			PubKey:    common.Base58Encode(v.PubKey),
 		}
 	}
-	receiptRaw, err := blkchain.GetTxReceiptByTxHash(txHash)
+	receiptRaw, err := blockchain.GetTxReceiptByTxHash(txHash)
 	if err != nil {
 		return nil, err
 	}

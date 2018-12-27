@@ -3,7 +3,7 @@ package cron
 import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"github.com/iost-official/iost-api/model/blkchain"
+	"github.com/iost-official/iost-api/model/blockchain"
 	"github.com/iost-official/iost-api/model/db"
 	"log"
 	"sync"
@@ -35,7 +35,7 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 		var topHeightInChain int64 = 0
 		var topHeightInMongo int64 = 0
 
-		topBlcHeight, err := blkchain.GetCurrentBlockHeight()
+		topBlcHeight, err := blockchain.GetCurrentBlockHeight()
 
 		if err != nil {
 			log.Println("updateBlock get topBlk in chain error:", err)

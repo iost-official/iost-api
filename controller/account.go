@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/iost-official/iost-api/model/blkchain"
+	"github.com/iost-official/iost-api/model/blockchain"
 	"github.com/iost-official/iost-api/model/db"
 	"github.com/labstack/echo"
 )
@@ -120,7 +120,7 @@ func GetAccountDetail(c echo.Context) error {
 		toUpdate["tx_count"] = txCount
 	}
 	if address[0:4] == "IOST" { // IOST 地址获取余额
-		balance, err := blkchain.GetBalance(address)
+		balance, err := blockchain.GetBalance(address)
 		if err == nil {
 			account.Balance = float64(balance)
 			toUpdate["balance"] = balance

@@ -1,5 +1,16 @@
 package blockchain
 
+import "github.com/spf13/viper"
+
 const (
-	RPCAddress = "18.179.143.193:30303"
+	SystemContract     = "iost.system"
+	SystemTransferFunc = "Transfer"
 )
+
+var (
+	RPCAddress = "13.237.151.211:30002"
+)
+
+func InitConfig() {
+	RPCAddress = viper.GetString("rpcHost")
+}

@@ -2,7 +2,7 @@ package cron
 
 import (
 	"fmt"
-	"github.com/iost-official/iost-api/model/blkchain"
+	"github.com/iost-official/iost-api/model/blockchain"
 	"github.com/iost-official/iost-api/model/db"
 	"log"
 	"sync"
@@ -20,7 +20,7 @@ func CheckRestart(ws *sync.WaitGroup) {
 		//	continue
 		//}
 		// 判断block 的高度
-		topHeightInChain, err := blkchain.GetCurrentBlockHeight()
+		topHeightInChain, err := blockchain.GetCurrentBlockHeight()
 		if err != nil {
 			log.Println("updateBlock get topBlk in chain error:", err)
 			continue
