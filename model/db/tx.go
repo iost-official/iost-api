@@ -89,10 +89,27 @@ func elapsed(what string) func() {
 }
 
 func ProcessTxs(txs []*rpcpb.Transaction) err {
-	for tx := range txs {
-
-	}
+	go insertTxs(txs)
+	// Wait for ziran
 	return nil
+}
+
+func insertTxs(txs []*rpcpb.Transaction) {
+	txnC, err := db.GetCollection(db.CollectionTxs)
+	flatTxs := convertTxs(txs)
+	for {
+		err := txnC.Insert(txs...)
+		if nil != err {
+			log.Println("fail to insert txs, err: ", err)
+		} else {
+			log.Println("update txs, size: ", len(txs))
+			break
+		}
+	}
+}
+
+func convertTxs(txs []*rpcpb.Transaction) []FlatTx{
+
 }
 
 func RpcGetTxByHash(txHash string) (*Tx, error) {

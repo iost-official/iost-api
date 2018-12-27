@@ -50,7 +50,7 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 }
 
 func insertBlock(blockChannel chan *rpcpb.Block) {
-	collection, err := db.GetCollection("block")
+	collection, err := db.GetCollection(db.CollectionBlocks)
 	if err != nil {
 		log.Println("can not get blocks collection when update", err)
 		return
@@ -64,7 +64,7 @@ func insertBlock(blockChannel chan *rpcpb.Block) {
 			db.ProcessTxs(txs)
 
 			b.Transactions = make([]*rpcpb.Transaction, 0)
-			err = collection.Insert(&b)
+			err = collection.Insert(*b)
 
 			if err != nil {
 				log.Println("updateBlock insert mongo error:", err)
