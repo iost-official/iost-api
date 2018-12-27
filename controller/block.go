@@ -20,19 +20,6 @@ type BlockListOutput struct {
 	PageLast  int64                `json:"pageLast"`
 }
 
-func GetIndexBlocks(c echo.Context) error {
-	top10Blks, err := model.GetBlock(1, 10)
-	if err != nil {
-		return err
-	}
-
-	for _, v := range top10Blks {
-		v.TxList = nil
-	}
-
-	return c.JSON(http.StatusOK, FormatResponse(top10Blks))
-}
-
 func GetBlocks(c echo.Context) error {
 	page := c.QueryParam("p")
 

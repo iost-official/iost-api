@@ -2,19 +2,12 @@ package controller
 
 import (
 	"errors"
-	"fmt"
-	"github.com/iost-official/iost-api/model"
-	"log"
 	"net/http"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/iost-official/go-iost/common"
 	"github.com/iost-official/iost-api/model/blkchain"
 	"github.com/iost-official/iost-api/model/db"
-	"github.com/iost-official/iost-api/util/session"
 	"github.com/labstack/echo"
 )
 
@@ -139,11 +132,6 @@ func GetAccountDetail(c echo.Context) error {
 		return err
 	}
 
-	// 计算iost对应的美元价值
-	marketInfo, err := model.GetMarketInfo()
-	price, _ := strconv.ParseFloat(marketInfo.Price, 32)
-	value := account.Balance / 100000000 * price
-
 	// 合约地址， 获取合约代码
 	code := ""
 	if address[0:8] == "Contract" {
@@ -154,11 +142,9 @@ func GetAccountDetail(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, FormatResponse(struct {
 		db.Account
-		Value float64 `json:"value"`
-		Code  string  `json:"code"`
+		Code string `json:"code"`
 	}{
 		*account,
-		value,
 		code,
 	}))
 }
@@ -193,219 +179,4 @@ func GetAccountTxs(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, FormatResponse(output))
-}
-
-func ApplyIOST(c echo.Context) error {
-
-	address := c.FormValue("address")
-	email := c.FormValue("email")
-	mobile := c.FormValue("mobile")
-	vc := c.FormValue("verify")
-
-	sess, _ := session.GlobalSessions.SessionStart(c.Response(), c.Request())
-	defer sess.SessionRelease(c.Response())
-
-	if sess.SessionID() == "" {
-		log.Println("ApplyIOST nil session id")
-		return ErrInvalidInput
-	}
-
-	if address == "" || email == "" || mobile == "" || vc == "" {
-		log.Println("ApplyIOST nil params")
-		return ErrInvalidInput
-	}
-
-	//if len(address) != 44 && len(address) != 45 {
-	//	log.Println("ApplyIOST invalid address")
-	//	return ErrInvalidInput
-	//}
-
-	if len(mobile) < 10 || mobile[0] != '+' {
-		log.Println("ApplyIOST invalid mobile")
-		return ErrInvalidInput
-	}
-
-	if len(vc) != 6 {
-		log.Println("ApplyIOST invalid vc")
-		return ErrInvalidInput
-	}
-
-	//if len(common.Base58Decode(address)) != 33 {
-	//	log.Println("ApplyIOST invalid decode address")
-	//	return ErrInvalidInput
-	//}
-
-	if !RegEmail.MatchString(email) {
-		log.Println("ApplyIOST invaild regexp email")
-		return ErrInvalidInput
-	}
-
-	vcInterface := sess.Get("verification")
-	vcInSession, _ := vcInterface.(string)
-
-	log.Println("ApplyIOST:", sess.SessionID(), "vc:", vc)
-
-	if strings.ToLower(vcInSession) != strings.ToLower(vc) {
-		log.Println("ApplyIOST", ErrMobileVerfiy.Error())
-		return ErrMobileVerfiy
-	}
-
-	// send to blockChain
-	var (
-		txHash        []byte
-		err           error
-		transferIndex int
-	)
-	for transferIndex < 3 { // 尝试 3 次
-		txHash, err = db.TransferIOSTToAddress(address, 10.1*100000000)
-		if err != nil {
-			log.Println("ApplyIOST TransferIOSTToAddress error:", err)
-		}
-		if txHash != nil {
-			break
-		}
-		transferIndex++
-		time.Sleep(time.Second)
-	}
-	if transferIndex == 3 {
-		log.Println("ApplyIOST TransferIOSTToAddress error:", ErrOutOfRetryTime)
-		return ErrOutOfRetryTime
-	}
-
-	txHashEncoded := common.Base58Encode(txHash)
-
-	// check BlocakChain
-	var checkIndex int
-	for checkIndex < 30 {
-		time.Sleep(time.Second * 2)
-		if _, err := blkchain.GetTxByHash(txHashEncoded); err != nil {
-			log.Printf("ApplyIOST GetTxnByHash error: %v, retry...\n", err)
-		} else {
-			log.Println("ApplyIOST blockChain Hash: ", txHashEncoded)
-			break
-		}
-		checkIndex++
-	}
-
-	if checkIndex == 30 {
-		log.Println("ApplyIOST checkTxHash error:", ErrOutOfCheckTxHash)
-		return ErrOutOfCheckTxHash
-	}
-	log.Println("ApplyIOST checkTxHash success.")
-
-	ai := &db.ApplyTestIOST{
-		Address:   address,
-		Amount:    10,
-		Email:     email,
-		Mobile:    mobile,
-		ApplyTime: time.Now().Unix(),
-	}
-	db.SaveApplyTestIOST(ai)
-
-	return c.JSON(http.StatusOK, FormatResponse(txHashEncoded))
-}
-
-/*func ApplyIOSTBenMark(c echo.Context) error {
-	c.Response().Header().Set("Access-Control-Allow-Origin", "*")
-
-	address := c.FormValue("address")
-	email := c.FormValue("email")
-	mobile := c.FormValue("mobile")
-
-	if address == "" || email == "" || mobile == "" {
-		log.Println("ApplyIOST nil params")
-		return c.JSON(http.StatusOK, &CommOutput{1, ErrInvalidInput.Error()})
-	}
-
-	if len(address) != 44 && len(address) != 45 {
-		log.Println("ApplyIOST invalid address")
-		return c.JSON(http.StatusOK, &CommOutput{1, ErrInvalidInput.Error()})
-	}
-
-	if len(mobile) != 14 || mobile[0] != '+' {
-		log.Println("ApplyIOST invalid mobile")
-		return c.JSON(http.StatusOK, &CommOutput{1, ErrInvalidInput.Error()})
-	}
-
-	if len(common.Base58Decode(address)) != 33 {
-		log.Println("ApplyIOST invalid decode address")
-		return c.JSON(http.StatusOK, &CommOutput{1, ErrInvalidInput.Error()})
-	}
-
-	if !RegEmail.MatchString(email) {
-		log.Println("ApplyIOST invaild regexp email")
-		return c.JSON(http.StatusOK, &CommOutput{1, ErrInvalidInput.Error()})
-	}
-
-	log.Println("ApplyIOST address:", address)
-
-	// send to blockChain
-	var (
-		txHash        []byte
-		err           error
-		transferIndex int
-	)
-	for transferIndex < 3 {
-		txHash, err = blockchain.TransferIOSTToAddress(address, 10)
-		if err != nil {
-			log.Println("ApplyIOST TransferIOSTToAddress error:", err)
-		}
-		if txHash != nil {
-			break
-		}
-		transferIndex++
-		time.Sleep(time.Second)
-	}
-	if transferIndex == 3 {
-		log.Println("ApplyIOST TransferIOSTToAddress error:", ErrOutOfRetryTime)
-		return c.JSON(http.StatusOK, &CommOutput{3, ErrOutOfRetryTime.Error()})
-	}
-
-	// check BlocakChain
-	var checkIndex int
-	for checkIndex < 30 {
-		time.Sleep(time.Second * 2)
-		if txx, err := blockchain.GetTxnByHash(txHash); err != nil {
-			log.Printf("ApplyIOST GetTxnByHash error: %v, retry...\n", err)
-		} else {
-			log.Println("ApplyIOST blockChain Hash: ", bytes.Equal(txx.Hash(), txHash), hex.EncodeToString(txx.Hash()), hex.EncodeToString(txHash))
-			break
-		}
-		checkIndex++
-	}
-
-	if checkIndex == 30 {
-		log.Printf("ApplyIOST checkTxHash error: %v, address: %s\n", ErrOutOfCheckTxHash, address)
-		return c.JSON(http.StatusOK, &CommOutput{4, ErrOutOfCheckTxHash.Error()})
-	}
-	log.Println("ApplyIOST checkTxHash success.")
-
-	ai := &db.ApplyTestIOST{
-		Address:   address,
-		Amount:    10,
-		Email:     email,
-		Mobile:    mobile,
-		ApplyTime: time.Now().Unix(),
-	}
-	db.SaveApplyTestIOST(ai)
-
-	return c.JSON(http.StatusOK, &CommOutput{0, hex.EncodeToString(txHash)})
-}*/
-
-func TestPage(c echo.Context) error {
-	sess, _ := session.GlobalSessions.SessionStart(c.Response(), c.Request())
-	defer sess.SessionRelease(c.Response())
-
-	sess.Set("test-session", "hello-123-456")
-	return c.JSON(http.StatusOK, FormatResponse([]string{"hello world"}))
-}
-
-func TestPage2(c echo.Context) error {
-	sess, _ := session.GlobalSessions.SessionStart(c.Response(), c.Request())
-	defer sess.SessionRelease(c.Response())
-
-	info := sess.Get("test-session")
-	vcInSession, _ := info.(string)
-	fmt.Println(vcInSession)
-	return c.JSON(http.StatusOK, FormatResponse([]string{"hello world2"}))
 }

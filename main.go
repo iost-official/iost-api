@@ -18,11 +18,6 @@ func main() {
 	e.Use(echoMiddle.Recover())
 	e.Use(echoMiddle.Logger())
 
-	// index
-	e.GET("/api/market", controller.GetMarket)
-	e.GET("/api/indexBlocks", controller.GetIndexBlocks)
-	e.GET("/api/indexTxns", controller.GetIndexTxns)
-
 	// blocks
 	e.GET("/api/blocks", controller.GetBlocks)
 	e.GET("/api/block/:id", controller.GetBlockDetail)
@@ -38,15 +33,6 @@ func main() {
 
 	// search
 	e.GET("/api/search/:id", controller.GetSearch)
-
-	// applyIOST
-	e.POST("/api/sendSMS", controller.SendSMS)
-	e.POST("/api/applyIOST", controller.ApplyIOST)
-
-	//e.POST("/api/applyIOSTBenchMark", controller.ApplyIOSTBenMark)
-
-	// mail
-	e.POST("/api/feedback", controller.SendMail)
 
 	e.GET("/api/dropDatabase", controller.DropDatabase)
 

@@ -38,16 +38,6 @@ func GetTxnDetail(c echo.Context) error {
 	return c.JSON(http.StatusOK, FormatResponse(txnOut))
 }
 
-func GetIndexTxns(c echo.Context) error {
-	topTxs, err := model.GetFlatTxnSlicePage(1, 15, -1, "")
-
-	if err != nil {
-		return err
-	}
-
-	return c.JSON(http.StatusOK, FormatResponse(topTxs))
-}
-
 func GetTxs(c echo.Context) error {
 	page := c.QueryParam("page")
 	address := c.QueryParam("account")
