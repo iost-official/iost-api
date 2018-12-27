@@ -8,12 +8,12 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/iost-official/explorer/backend/model/blkchain/rpc"
-	"github.com/iost-official/explorer/backend/util/transport"
 	"github.com/iost-official/go-iost/account"
 	"github.com/iost-official/go-iost/common"
 	"github.com/iost-official/go-iost/core/tx"
 	"github.com/iost-official/go-iost/crypto"
+	"github.com/iost-official/iost-api/model/blkchain/rpc"
+	"github.com/iost-official/iost-api/util/transport"
 )
 
 func GetCurrentBlockHeight() (int64, error) {

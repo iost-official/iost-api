@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/iost-official/explorer/backend/model/db"
+	"github.com/iost-official/iost-api/model/db"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	"net/http"

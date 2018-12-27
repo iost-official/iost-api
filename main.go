@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/iost-official/explorer/backend/config"
-	"github.com/iost-official/explorer/backend/controller"
-	"github.com/iost-official/explorer/backend/middleware"
+	"github.com/iost-official/iost-api/config"
+	"github.com/iost-official/iost-api/controller"
+	"github.com/iost-official/iost-api/middleware"
 	"github.com/labstack/echo"
 	echoMiddle "github.com/labstack/echo/middleware"
 	"github.com/spf13/viper"
@@ -49,7 +49,6 @@ func main() {
 	e.POST("/api/feedback", controller.SendMail)
 
 	e.GET("/api/dropDatabase", controller.DropDatabase)
-
 
 	e.Logger.Fatal(e.Start(":" + viper.GetString("port")))
 }

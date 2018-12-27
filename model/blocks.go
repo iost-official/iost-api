@@ -1,8 +1,8 @@
 package model
 
 import (
-	"github.com/iost-official/explorer/backend/model/db"
-	"github.com/iost-official/explorer/backend/util"
+	"github.com/iost-official/iost-api/model/db"
+	"github.com/iost-official/iost-api/util"
 )
 
 type BlockOutput struct {

@@ -10,16 +10,16 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/iost-official/prototype/rpc"
-	"github.com/iost-official/prototype/core/state"
-	"strconv"
 	"github.com/iost-official/prototype/common"
+	"github.com/iost-official/prototype/core/state"
+	"github.com/iost-official/prototype/rpc"
 	"model/cache"
+	"strconv"
 )
 
 const (
-	BetHash = "9M8wiAvqkt6T8dtPaegjwfogbyogmMokJ6vbqW5wwaMJ"
-	SendBetContract        = `--- main 合约主入口
+	BetHash         = "9M8wiAvqkt6T8dtPaegjwfogbyogmMokJ6vbqW5wwaMJ"
+	SendBetContract = `--- main 合约主入口
 -- LuckyBet
 -- @gas_limit 100000000
 -- @gas_price 0
@@ -34,7 +34,7 @@ function main()
 end--f`
 )
 
-func init()  {
+func init() {
 	go GetBetMainCode()
 }
 
@@ -52,8 +52,8 @@ func SendBet(address, privKey string, luckyNumber, betAmount int) ([]byte, int, 
 	contract := fmt.Sprintf(SendBetContract, address, luckyNumber, betAmount, nonce)
 
 	transInfo := &rpc.TransInfo{
-		Seckey: privKey,
-		Nonce: nonce,
+		Seckey:   privKey,
+		Nonce:    nonce,
 		Contract: contract,
 	}
 	log.Println(transInfo)
@@ -87,7 +87,7 @@ func GetTotalRounds(txHash string) (float64, error) {
 	defer cancel()
 
 	key := &rpc.Key{
-		S:txHash + "round",
+		S: txHash + "round",
 	}
 
 	st, err := c.GetState(ctx, key)

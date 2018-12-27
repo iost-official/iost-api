@@ -1,14 +1,15 @@
 package main
 
 import (
-	"github.com/iost-official/explorer/backend/config"
-	"github.com/iost-official/explorer/backend/task/cron"
 	"sync"
+
+	"github.com/iost-official/iost-api/config"
+	"github.com/iost-official/iost-api/task/cron"
 )
 
 var ws = new(sync.WaitGroup)
 
-func main()  {
+func main() {
 	config.ReadConfig()
 
 	// start tasks

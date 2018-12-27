@@ -4,8 +4,8 @@ import (
 	"log"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/iost-official/explorer/backend/model/blkchain"
 	"github.com/iost-official/go-iost/common"
+	"github.com/iost-official/iost-api/model/blkchain"
 )
 
 type Block struct {

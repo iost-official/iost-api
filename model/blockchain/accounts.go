@@ -2,21 +2,20 @@ package blockchain
 
 import (
 	"fmt"
+	"log"
 	"time"
-
-	"github.com/iost-official/prototype/transport"
 
 	"golang.org/x/net/context"
 
-	"github.com/iost-official/prototype/core/state"
-	"github.com/iost-official/prototype/rpc"
-	"model/db"
-	"log"
+	"github.com/iost-official/go-iost/core/state"
+	"github.com/iost-official/go-iost/rpc"
+	"github.com/iost-official/go-iost/transport"
+	"github.com/iost-official/iost-api/model/db"
 )
 
 const (
 	TransferIOSTOrigPrivKey = "BRpwCKmVJiTTrPFi6igcSgvuzSiySd7Exxj7LGfqieW9"
-	TransferIOSTContract = `--- main 合约主入口
+	TransferIOSTContract    = `--- main 合约主入口
 -- server1转账server2
 -- @gas_limit 10000
 -- @gas_price 0.001
@@ -69,8 +68,8 @@ func TransferIOSTToAddress(address string, amount float64) ([]byte, error) {
 	}
 
 	transInfo := &rpc.TransInfo{
-		Seckey: TransferIOSTOrigPrivKey,
-		Nonce: nonce,
+		Seckey:   TransferIOSTOrigPrivKey,
+		Nonce:    nonce,
 		Contract: contract,
 	}
 	err = db.IncAddressNonce(address)

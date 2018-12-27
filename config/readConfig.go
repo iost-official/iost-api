@@ -2,14 +2,14 @@ package config
 
 import (
 	"fmt"
-	"github.com/iost-official/explorer/backend/model/blkchain"
-	"github.com/iost-official/explorer/backend/model/db"
+	"github.com/iost-official/iost-api/model/blkchain"
+	"github.com/iost-official/iost-api/model/db"
 	"github.com/spf13/viper"
 )
 
-func ReadConfig () {
+func ReadConfig() {
 	viper.SetConfigName("config")
-	viper.AddConfigPath("$GOPATH/src/github.com/iost-official/explorer/backend/config")
+	viper.AddConfigPath("$GOPATH/src/github.com/iost-official/iost-api/config")
 	//viper.AddConfigPath("./config")
 	err := viper.ReadInConfig()
 	if err != nil {

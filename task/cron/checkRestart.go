@@ -2,8 +2,8 @@ package cron
 
 import (
 	"fmt"
-	"github.com/iost-official/explorer/backend/model/blkchain"
-	"github.com/iost-official/explorer/backend/model/db"
+	"github.com/iost-official/iost-api/model/blkchain"
+	"github.com/iost-official/iost-api/model/db"
 	"log"
 	"sync"
 	"time"

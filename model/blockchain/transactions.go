@@ -5,9 +5,9 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/iost-official/prototype/core/tx"
-	"github.com/iost-official/prototype/rpc"
-	"github.com/iost-official/prototype/transport"
+	"github.com/iost-official/go-iost/core/tx"
+	"github.com/iost-official/go-iost/rpc"
+	"github.com/iost-official/go-iost/transport"
 )
 
 func GetTxnByKey(tkey *rpc.TransactionKey) (*tx.Tx, error) {

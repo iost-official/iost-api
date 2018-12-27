@@ -3,7 +3,7 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"github.com/iost-official/explorer/backend/model"
+	"github.com/iost-official/iost-api/model"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/iost-official/explorer/backend/model/blkchain"
-	"github.com/iost-official/explorer/backend/model/db"
-	"github.com/iost-official/explorer/backend/util/session"
 	"github.com/iost-official/go-iost/common"
+	"github.com/iost-official/iost-api/model/blkchain"
+	"github.com/iost-official/iost-api/model/db"
+	"github.com/iost-official/iost-api/util/session"
 	"github.com/labstack/echo"
 )
 
@@ -148,15 +148,14 @@ func GetAccountDetail(c echo.Context) error {
 	code := ""
 	if address[0:8] == "Contract" {
 		txhash := address[8:]
-		txDetail, _ := db.GetFlatTxnDetailByHash(txhash);
+		txDetail, _ := db.GetFlatTxnDetailByHash(txhash)
 		code = txDetail.Action.Data
 	}
 
-
-	return c.JSON(http.StatusOK, FormatResponse(struct{
+	return c.JSON(http.StatusOK, FormatResponse(struct {
 		db.Account
 		Value float64 `json:"value"`
-		Code string `json:"code"`
+		Code  string  `json:"code"`
 	}{
 		*account,
 		value,

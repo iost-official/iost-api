@@ -2,12 +2,13 @@ package cron
 
 import (
 	"fmt"
-	"github.com/globalsign/mgo/bson"
-	"github.com/iost-official/explorer/backend/model/blkchain"
-	"github.com/iost-official/explorer/backend/model/db"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/globalsign/mgo/bson"
+	"github.com/iost-official/iost-api/model/blkchain"
+	"github.com/iost-official/iost-api/model/db"
 )
 
 func UpdateAccounts(wg *sync.WaitGroup) {
@@ -38,7 +39,7 @@ func UpdateAccounts(wg *sync.WaitGroup) {
 		for _, ft := range txs {
 			// ===== update from account
 			var fromB int64
-			if ft.From[0:4] == "IOST" {  // IOST 地址才会获取
+			if ft.From[0:4] == "IOST" { // IOST 地址才会获取
 				fromB, err = blkchain.GetBalance(ft.From)
 				if err != nil {
 					fmt.Println("Get balance failed", err)
@@ -49,7 +50,7 @@ func UpdateAccounts(wg *sync.WaitGroup) {
 				fmt.Println("Update failed", err)
 			}
 
-			if ft.To[0:5] == "iost." {  // 跳过特殊地址
+			if ft.To[0:5] == "iost." { // 跳过特殊地址
 				continue
 			}
 

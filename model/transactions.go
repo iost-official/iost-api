@@ -5,9 +5,9 @@ import (
 	"log"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/iost-official/explorer/backend/model/db"
-	"github.com/iost-official/explorer/backend/util"
 	"github.com/iost-official/go-iost/core/contract"
+	"github.com/iost-official/iost-api/model/db"
+	"github.com/iost-official/iost-api/util"
 )
 
 /// this struct is used as json to return

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/iost-official/explorer/backend/model/blkchain"
-	"github.com/iost-official/explorer/backend/util"
+	"github.com/iost-official/iost-api/model/blkchain"
+	"github.com/iost-official/iost-api/util"
 	"github.com/spf13/viper"
 )
 
