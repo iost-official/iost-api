@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 
-	"github.com/iost-official/iost-api/model/blockchain"
 	"github.com/iost-official/iost-api/model/db"
 	"github.com/spf13/viper"
 )
@@ -18,5 +17,4 @@ func ReadConfig() {
 	}
 	db.InitConfig()
 	db.EnsureCapped()
-	blockchain.InitConfig()
 }
