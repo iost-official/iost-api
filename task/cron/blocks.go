@@ -5,8 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/iost-official/iost-api/model/blockchain"
 	"github.com/iost-official/iost-api/model/blockchain/rpcpb"
 	"github.com/iost-official/iost-api/model/db"
@@ -46,6 +44,7 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 		}
 		blockChannel <- blockRspn.Block
 		log.Println("Download block", topHeightInMongo, " Succ!")
+		topHeightInMongo++
 	}
 }
 
@@ -73,83 +72,4 @@ func insertBlock(blockChannel chan *rpcpb.Block) {
 
 		}
 	}
-}
-
-func UpdateBlockPay(wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	txnC, err := db.GetCollection(db.CollectionTxs)
-	if err != nil {
-		log.Println("UpdateBlockCost get collection error:", err)
-		return
-	}
-
-	blkPC, err := db.GetCollection(db.CollectionBlockPay)
-	if err != nil {
-		log.Println("UpdateBlockCost get collection error:", err)
-		return
-	}
-
-	ticker := time.NewTicker(time.Second * 2)
-	for range ticker.C {
-		var topHeightInPay int64
-		topPay, err := db.GetTopBlockPay()
-		if err != nil {
-			if err.Error() != "not found" {
-				continue
-			}
-		} else {
-			topHeightInPay = topPay.Height + 1
-		}
-
-		queryPip := []bson.M{
-			{
-				"$match": bson.M{
-					"blockNumber": bson.M{
-						"$gte": topHeightInPay,
-					},
-					"time": bson.M{
-						"$ne": 0,
-					},
-				},
-			},
-			{
-				"$group": bson.M{
-					"_id": "$blockNumber",
-					"avggasprice": bson.M{
-						"$avg": "$gasPrice",
-					},
-					"totalgaslimit": bson.M{
-						"$sum": "$gasLimit",
-					},
-				},
-			},
-		}
-
-		var payList []*db.BlockPay
-		err = txnC.Pipe(queryPip).All(&payList)
-		if err != nil {
-			log.Println("UpdateBlockPay pipeline error:", err)
-			continue
-		}
-
-		for _, pay := range payList {
-			selector := bson.M{
-				"_id": pay.Height,
-			}
-			blkPC.Upsert(selector, pay)
-			log.Println("UpdateBlockPay block:", pay.Height, "inserted")
-		}
-	}
-}
-
-func recordFailedUpdateBlock(blockNumber int64, fBlockCollection *mgo.Collection) error {
-	fBlock := db.FailBlock{
-		BlockNumber: blockNumber,
-		RetryTimes:  0,
-		Processed:   false,
-	}
-
-	err := fBlockCollection.Insert(fBlock)
-	return err
 }
