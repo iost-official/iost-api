@@ -2,9 +2,10 @@ package db
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/globalsign/mgo/bson"
 	"github.com/spf13/viper"
-	"log"
 )
 
 var (
@@ -13,16 +14,18 @@ var (
 )
 
 const (
-	CollectionBlocks     = "blocks"
-	CollectionTmpTxs     = "tmpTxs"
-	CollectionTxs        = "txs"
-	CollectionRpcTxs     = "rpcErrTxs"
-	CollectionFlatTx     = "flatxs"
-	CollectionFBlocks    = "fBlocks"
-	CollectionAccount    = "accounts"
-	CollectionTaskCursor = "taskCursors"
-	CollectionBlockPay   = "blockPays"
-	CollectionApplyIost  = "applyTestIOST"
+	CollectionBlocks        = "blocks"
+	CollectionTmpTxs        = "tmpTxs"
+	CollectionTxs           = "txs"
+	CollectionRpcTxs        = "rpcErrTxs"
+	CollectionFlatTx        = "flatxs"
+	CollectionFBlocks       = "fBlocks"
+	CollectionAccount       = "accounts"
+	CollectionAccountTx     = "accountTx"
+	CollectionAccountPubkey = "accountPubkey"
+	CollectionTaskCursor    = "taskCursors"
+	CollectionBlockPay      = "blockPays"
+	CollectionApplyIost     = "applyTestIOST"
 )
 
 func InitConfig() {
