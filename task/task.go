@@ -13,13 +13,10 @@ func main() {
 	config.ReadConfig()
 
 	// start tasks
-	ws.Add(7)
+	ws.Add(6)
+	// download block
 	go cron.UpdateBlocks(ws)
-	go cron.ProcessFailedSyncBlocks(ws)
-	go cron.UpdateTxns(ws, 0)
-	go cron.UpdateTxns(ws, 1)
-	go cron.UpdateRpcErrTxns(ws)
-	go cron.UpdateBlockPay(ws)
+	go cron.UpdateTxns(ws)
 	go cron.UpdateAccounts(ws)
 	ws.Wait()
 }
