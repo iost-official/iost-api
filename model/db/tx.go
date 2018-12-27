@@ -89,18 +89,38 @@ func elapsed(what string) func() {
 }
 
 func ProcessTxs(txs []*rpcpb.Transaction) err {
+	// Todo: need to wait finish.t
 	go insertTxs(txs)
 	// Wait for ziran
 	return nil
 }
 
 func insertTxs(txs []*rpcpb.Transaction) {
-	txnC, err := db.GetCollection(db.CollectionTxs)
-	flatTxs := convertTxs(txs)
+	for {
+		txnC, err := db.GetCollection(db.CollectionTxs)
+		if err != nil {
+			log.Println("fail to Get db collection, err: ", err)
+			continue;
+		} else {
+			break
+		}
+	}
+
+	for {
+		flatTxs, err := convertTxs(txs)
+		if err != nil {
+			log.Println("fail to convert Txs, err: ", err)
+			continue;
+		} else {
+			break
+		}
+	}
+
 	for {
 		err := txnC.Insert(flatTxs...)
-		if nil != err {
+		if err != nil {
 			log.Println("fail to insert txs, err: ", err)
+			continue
 		} else {
 			log.Println("update txs, size: ", len(txs))
 			break
