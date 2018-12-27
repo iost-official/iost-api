@@ -1,17 +1,15 @@
 package cron
 
 import (
-	"sync"
-	"model/db"
-	"log"
-	"time"
-	"model/blockchain"
 	"encoding/json"
-	"strings"
 	"fmt"
+	"log"
+	"strings"
+	"sync"
+	"time"
 )
 
-func UpdateBet(wg *sync.WaitGroup)  {
+func UpdateBet(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	resultC, err := db.GetCollection("betResults")

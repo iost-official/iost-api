@@ -1,13 +1,14 @@
 package cron
 
 import (
+	"log"
+	"sync"
+	"time"
+
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/iost-official/iost-api/model/blockchain"
 	"github.com/iost-official/iost-api/model/db"
-	"log"
-	"sync"
-	"time"
 )
 
 func UpdateBlocks(ws *sync.WaitGroup) {
@@ -32,8 +33,8 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 	ticker := time.NewTicker(time.Second * 2)
 
 	for range ticker.C {
-		var topHeightInChain int64 = 0
-		var topHeightInMongo int64 = 0
+		var topHeightInChain int64
+		var topHeightInMongo int64
 
 		topBlcHeight, err := blockchain.GetCurrentBlockHeight()
 
