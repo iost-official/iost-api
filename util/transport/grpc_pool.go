@@ -28,7 +28,7 @@ func GetGRPCClient(address string) (*grpc.ClientConn, error) {
 	grpcClientMapLock.Lock()
 	defer grpcClientMapLock.Unlock()
 
-	//  need improvement.
+	//  todo, need improvement.
 	connList, err := generateClientsWithNum(address, EachGRPCClientNum)
 	if err != nil {
 		return nil, err

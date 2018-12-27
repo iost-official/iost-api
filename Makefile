@@ -1,10 +1,10 @@
 GO = go
 
-TARGET = explorer
+TARGET = iost-api
 
 all:$(TARGET)
 
-explorer: main.go
+iost-api: main.go
 	$(GO) build -o $@ $^
 
 clean:
