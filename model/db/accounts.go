@@ -266,27 +266,30 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 		}
 	}
 
-	accCh := make(chan *rpcpb.Account, len(updatedAccounts))
-	for name, _ := range updatedAccounts {
-		go func(name string) {
-			accountInfo, err := blockchain.GetAccount(name, false)
-			if err != nil {
-				accCh <- nil
-			} else {
-				accCh <- accountInfo
-			}
-		}(name)
-	}
+	if len(updatedAccounts) > 0 {
+		accCh := make(chan *rpcpb.Account, len(updatedAccounts))
+		for name, _ := range updatedAccounts {
+			go func(name string) {
+				accountInfo, err := blockchain.GetAccount(name, false)
+				if err != nil {
+					accCh <- nil
+				} else {
+					accCh <- accountInfo
+				}
+			}(name)
+		}
 
-	var i int
-	for accountInfo := range accCh {
-		i++
-		if accountInfo != nil {
-			accountB.Update(bson.M{"name": accountInfo.Name}, bson.M{"accountInfo": accountInfo})
+		var i int
+		for accountInfo := range accCh {
+			i++
+			if accountInfo != nil {
+				accountB.Update(bson.M{"name": accountInfo.Name}, bson.M{"accountInfo": accountInfo})
+			}
+			if i == len(updatedAccounts) {
+				break
+			}
 		}
-		if i == len(updatedAccounts) {
-			break
-		}
+
 	}
 
 	_, err = accTxB.Run()
