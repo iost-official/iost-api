@@ -68,7 +68,7 @@ func insertBlock(blockChannel chan *rpcpb.Block) {
 			wg := new(sync.WaitGroup)
 			wg.Add(2)
 			go func() {
-				db.ProcessTxs(txs)
+				db.ProcessTxs(txs, b.Number)
 				wg.Done()
 			}()
 			go func() {
