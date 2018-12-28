@@ -6,14 +6,18 @@ var (
 )
 
 const (
-	CollectionBlocks     = "blocks"
-	CollectionTmpTxs     = "tmpTxs"
-	CollectionTxs        = "txs"
-	CollectionRpcTxs     = "rpcErrTxs"
-	CollectionFlatTx     = "flatxs"
-	CollectionFBlocks    = "fBlocks"
-	CollectionAccount    = "accounts"
-	CollectionTaskCursor = "taskCursors"
-	CollectionBlockPay   = "blockPays"
-	CollectionApplyIost  = "applyTestIOST"
+	CollectionBlocks        = "blocks"
+	CollectionTmpTxs        = "tmpTxs"
+	CollectionTxs           = "txs"
+	CollectionRpcTxs        = "rpcErrTxs"
+	CollectionFlatTx        = "flatxs"
+	CollectionFBlocks       = "fBlocks"
+	CollectionAccount       = "accounts"
+	CollectionAccountTx     = "accountTx"
+	CollectionAccountPubkey = "accountPubkey"
+	CollectionContract      = "contracts"
+	CollectionContractTx    = "contractTx"
+	CollectionTaskCursor    = "taskCursors"
+	CollectionBlockPay      = "blockPays"
+	CollectionApplyIost     = "applyTestIOST"
 )
