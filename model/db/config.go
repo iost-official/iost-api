@@ -15,6 +15,8 @@ const (
 	CollectionAccount       = "accounts"
 	CollectionAccountTx     = "accountTx"
 	CollectionAccountPubkey = "accountPubkey"
+	CollectionContract      = "contracts"
+	CollectionContractTx    = "contractTx"
 	CollectionTaskCursor    = "taskCursors"
 	CollectionBlockPay      = "blockPays"
 	CollectionApplyIost     = "applyTestIOST"

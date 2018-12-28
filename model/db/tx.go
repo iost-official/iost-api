@@ -87,7 +87,7 @@ func elapsed(what string) func() {
 
 func ProcessTxs(txs []*rpcpb.Transaction) error {
 	// Todo: need to wait finish.
-	go insertTxs(txs)
+	insertTxs(txs)
 	// Wait for ziran
 	return nil
 }

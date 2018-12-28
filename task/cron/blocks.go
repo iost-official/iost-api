@@ -65,7 +65,17 @@ func insertBlock(blockChannel chan *rpcpb.Block) {
 		case b := <-blockChannel:
 			txs := b.Transactions
 
-			db.ProcessTxs(txs)
+			wg := new(sync.WaitGroup)
+			wg.Add(2)
+			go func() {
+				db.ProcessTxs(txs)
+				wg.Done()
+			}()
+			go func() {
+				db.ProcessTxsForAccount(txs, b.Time)
+				wg.Done()
+			}()
+			wg.Wait()
 
 			b.Transactions = make([]*rpcpb.Transaction, 0)
 			err = collection.Insert(*b)

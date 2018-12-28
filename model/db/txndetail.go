@@ -110,22 +110,22 @@ func GetFlatTxTotalPageCnt(eachPage int64, account string, block int64) (int64, 
 	return pageMax, nil
 }
 
-func GetFlatTxPageCntWithAddress(eachPage int64, account string) (int64, error) {
-	intLen, err := GetFlatTxnLenByAccount(account)
-	if err != nil {
-		return 0, err
-	}
+/* func GetFlatTxPageCntWithAddress(eachPage int64, account string) (int64, error) { */
+// intLen, err := GetFlatTxnLenByAccount(account)
+// if err != nil {
+// return 0, err
+// }
 
-	txsInt64Len := int64(intLen)
+// txsInt64Len := int64(intLen)
 
-	var pageMax = txsInt64Len / eachPage
+// var pageMax = txsInt64Len / eachPage
 
-	if txsInt64Len%eachPage != 0 {
-		pageMax++
-	}
+// if txsInt64Len%eachPage != 0 {
+// pageMax++
+// }
 
-	return pageMax, nil
-}
+// return pageMax, nil
+/* } */
 
 func GetFlatTxPageCntWithBlk(eachPage int64, blk int64) (int64, error) {
 	txnDC, err := GetCollection(CollectionFlatTx)
