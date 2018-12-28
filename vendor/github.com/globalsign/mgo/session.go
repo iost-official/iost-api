@@ -2999,7 +2999,7 @@ func IsDup(err error) bool {
 // be of type *LastError.
 func (c *Collection) Insert(docs ...interface{}) error {
 	_, err := c.writeOp(&insertOp{c.FullName, docs, 0}, true)
-	return err
+	 return err
 }
 
 // Update finds a single document matching the provided selector document
