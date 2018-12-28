@@ -23,10 +23,15 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 		topBlkInMongo, err := db.GetTopBlock()
 		if err != nil {
 			log.Println("updateBlock get topBlk in mongo error:", err)
-			continue
+			if err.Error() != "not found" {
+				continue
+			} else {
+				topHeightInMongo = 0
+				break
+			}
 		}
-
-		topHeightInMongo = topBlkInMongo.BlockNumber + 1
+		topHeightInMongo = topBlkInMongo.Number + 1
+		log.Println("Got Top Block From Mongo With Number: ", topHeightInMongo)
 		break
 	}
 
