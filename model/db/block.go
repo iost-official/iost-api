@@ -171,16 +171,16 @@ func GetBlockLastPage(eachPage int64) int64 {
 	return pageLast
 }
 
-func GetBlockByHeight(height int64) (*Block, error) {
+func GetBlockByHeight(height int64) (*rpcpb.Block, error) {
 	collection, err := GetCollection(CollectionBlocks)
 	if err != nil {
 		return nil, err
 	}
 
 	blkQuery := bson.M{
-		"blockNumber": height,
+		"number": height,
 	}
-	var blk *Block
+	var blk *rpcpb.Block
 	err = collection.Find(blkQuery).One(&blk)
 
 	if err != nil {
