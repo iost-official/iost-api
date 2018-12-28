@@ -57,6 +57,11 @@ type Tx struct {
 	Receipt     TxReceiptRaw   `bson:"receipt"`
 }
 
+type TxStore struct {
+	BlockNumber int64
+	tx          *rpcpb.Transaction
+}
+
 // 将 Tx.Actions 打平后的数据结构， 如果actionName == Transfer 则会解析出 from, to, amount
 type FlatTx struct {
 	Id          bson.ObjectId  `bson:"_id,omitempty" json:"id"`
@@ -85,14 +90,14 @@ func elapsed(what string) func() {
 	}
 }
 
-func ProcessTxs(txs []*rpcpb.Transaction) error {
+func ProcessTxs(txs []*rpcpb.Transaction, blockNumber int64) error {
 	// Todo: need to wait finish.
-	go insertTxs(txs)
+	go insertTxs(txs, blockNumber)
 	// Wait for ziran
 	return nil
 }
 
-func insertTxs(txs []*rpcpb.Transaction) {
+func insertTxs(txs []*rpcpb.Transaction, blockNumber int64) {
 	var txnC *mgo.Collection
 	var err error
 	for {
@@ -108,7 +113,7 @@ func insertTxs(txs []*rpcpb.Transaction) {
 
 	txInterfaces := make([]interface{}, len(txs))
 	for i, tx := range txs {
-		txInterfaces[i] = tx
+		txInterfaces[i] = TxStore{BlockNumber: blockNumber, tx: tx}
 	}
 
 	for {

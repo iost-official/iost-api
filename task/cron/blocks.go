@@ -65,7 +65,7 @@ func insertBlock(blockChannel chan *rpcpb.Block) {
 		case b := <-blockChannel:
 			txs := b.Transactions
 
-			db.ProcessTxs(txs)
+			db.ProcessTxs(txs, b.Number)
 
 			b.Transactions = make([]*rpcpb.Transaction, 0)
 			err = collection.Insert(*b)
