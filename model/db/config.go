@@ -2,13 +2,14 @@ package db
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/globalsign/mgo/bson"
 	"github.com/spf13/viper"
-	"log"
 )
 
 var (
-	MongoLink = "mongodb://127.0.0.1:27017"
+	MongoLink = "mongodb://47.244.109.92:27017"
 	Db        string
 )
 
@@ -25,7 +26,7 @@ const (
 	CollectionApplyIost  = "applyTestIOST"
 )
 
-func InitConfig() {
+func InitConf../model/db/block.goig() {
 	dbConfig := viper.GetStringMapString("mongodb")
 	Db = dbConfig["db"]
 	MongoLink = fmt.Sprintf("mongodb://%s:%s", dbConfig["host"], dbConfig["port"])

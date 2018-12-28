@@ -4,8 +4,6 @@ import (
 	"log"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/iost-official/go-iost/common"
-	"github.com/iost-official/iost-api/model/blockchain"
 )
 
 type Block struct {
@@ -63,7 +61,7 @@ func GetBlockTxnHashes(blockNumber int64) (*[]string, error) {
 	return &result, nil
 }
 
-func GetBlockInfoByNum(num int64) (*Block, *[]string, error) {
+/*func GetBlockInfoByNum(num int64) (*Block, *[]string, error) {
 	blockInfo, err := blockchain.GetBlockByNum(num, false)
 
 	if nil != err {
@@ -93,7 +91,7 @@ func GetBlockInfoByNum(num int64) (*Block, *[]string, error) {
 	}
 
 	return &block, nil, nil
-}
+}*/
 
 func GetBlockByHash(hash string) (*Block, *[]string, error) {
 	blockCollection, err := GetCollection(CollectionBlocks)
