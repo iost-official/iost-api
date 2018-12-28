@@ -30,10 +30,10 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 				break
 			}
 		}
-		topHeightInMongo = topBlkInMongo.BlockNumber + 1
+		topHeightInMongo = topBlkInMongo.Number + 1
+		log.Println("Got Top Block From Mongo With Number: ", topHeightInMongo)
 		break
 	}
-	log.Println("Got Top Block From Mongo With Number: ", topHeightInMongo)
 
 	for {
 		blockRspn, err := blockchain.GetBlockByNum(topHeightInMongo, true)

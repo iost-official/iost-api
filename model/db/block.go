@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/globalsign/mgo/bson"
+	"github.com/iost-official/iost-api/model/blockchain/rpcpb"
 )
 
 type Block struct {
@@ -140,15 +141,15 @@ func GetBlocks(start, limit int) ([]*Block, error) {
 	return blkInfoList, nil
 }
 
-func GetTopBlock() (*Block, error) {
+func GetTopBlock() (*rpcpb.Block, error) {
 	collection, err := GetCollection(CollectionBlocks)
 	if err != nil {
 		return nil, err
 	}
 
 	var emptyQuery interface{}
-	var topBlk *Block
-	err = collection.Find(emptyQuery).Sort("-blockNumber").Limit(1).One(&topBlk)
+	var topBlk *rpcpb.Block
+	err = collection.Find(emptyQuery).Sort("-number").Limit(1).One(&topBlk)
 	if err != nil {
 		log.Println("getTopBlock error:", err)
 		return nil, err
@@ -160,10 +161,10 @@ func GetTopBlock() (*Block, error) {
 func GetBlockLastPage(eachPage int64) int64 {
 	var pageLast int64
 	if topBlock, err := GetTopBlock(); err == nil {
-		if topBlock.BlockNumber%eachPage == 0 {
-			pageLast = topBlock.BlockNumber / eachPage
+		if topBlock.Number%eachPage == 0 {
+			pageLast = topBlock.Number / eachPage
 		} else {
-			pageLast = topBlock.BlockNumber/eachPage + 1
+			pageLast = topBlock.Number/eachPage + 1
 		}
 	}
 
