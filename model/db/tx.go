@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/iost-official/go-iost/account"
 	"github.com/iost-official/go-iost/common"
@@ -88,38 +89,37 @@ func elapsed(what string) func() {
 	}
 }
 
-func ProcessTxs(txs []*rpcpb.Transaction) err {
-	// Todo: need to wait finish.t
+func ProcessTxs(txs []*rpcpb.Transaction) error {
+	// Todo: need to wait finish.
 	go insertTxs(txs)
 	// Wait for ziran
 	return nil
 }
 
 func insertTxs(txs []*rpcpb.Transaction) {
+	var txnC *mgo.Collection
+	var err error
 	for {
-		txnC, err := db.GetCollection(db.CollectionTxs)
+		txnC, err = GetCollection(CollectionTxs)
 		if err != nil {
 			log.Println("fail to Get db collection, err: ", err)
-			continue;
+			time.Sleep(time.Second)
+			continue
 		} else {
 			break
 		}
 	}
 
-	for {
-		flatTxs, err := convertTxs(txs)
-		if err != nil {
-			log.Println("fail to convert Txs, err: ", err)
-			continue;
-		} else {
-			break
-		}
+	txInterfaces := make([]interface{}, len(txs))
+	for i, tx := range txs {
+		txInterfaces[i] = tx
 	}
 
 	for {
-		err := txnC.Insert(flatTxs...)
+		err := txnC.Insert(txInterfaces...)
 		if err != nil {
 			log.Println("fail to insert txs, err: ", err)
+			time.Sleep(time.Second)
 			continue
 		} else {
 			log.Println("update txs, size: ", len(txs))
@@ -128,8 +128,10 @@ func insertTxs(txs []*rpcpb.Transaction) {
 	}
 }
 
-func convertTxs(txs []*rpcpb.Transaction) []FlatTx{
+// ConvertTxs used to convert tx in db to web display format
+func convertTxs(txs []*rpcpb.Transaction) []FlatTx {
 
+	return nil
 }
 
 func RpcGetTxByHash(txHash string) (*Tx, error) {

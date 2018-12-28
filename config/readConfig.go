@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 
-	"github.com/iost-official/iost-api/model/db"
 	"github.com/spf13/viper"
 )
 
@@ -15,6 +14,4 @@ func ReadConfig() {
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
-	db.InitConfig()
-	db.EnsureCapped()
 }
