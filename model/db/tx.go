@@ -59,7 +59,7 @@ type Tx struct {
 
 type TxStore struct {
 	BlockNumber int64
-	tx          *rpcpb.Transaction
+	Tx          *rpcpb.Transaction
 }
 
 // 将 Tx.Actions 打平后的数据结构， 如果actionName == Transfer 则会解析出 from, to, amount
@@ -111,7 +111,7 @@ func insertTxs(txs []*rpcpb.Transaction, blockNumber int64) {
 
 	txInterfaces := make([]interface{}, len(txs))
 	for i, tx := range txs {
-		txInterfaces[i] = TxStore{BlockNumber: blockNumber, tx: tx}
+		txInterfaces[i] = TxStore{BlockNumber: blockNumber, Tx: tx}
 	}
 
 	for {
