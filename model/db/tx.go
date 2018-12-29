@@ -138,7 +138,18 @@ func GetTxsByHash(hashes []string) ([]*TxStore, error) {
 	}
 	var txs []*TxStore
 	err := txnDC.Find(query).All(&txs)
-	return txs, err
+
+	txMap := make(map[string]*TxStore)
+	for _, t := range txs {
+		txMap[t.Tx.Hash] = t
+	}
+
+	ret := make([]*TxStore, 0, len(txMap))
+	for _, hash := range hashes {
+		ret = append(ret, txMap[hash])
+	}
+
+	return ret, err
 }
 
 // ConvertTxs used to convert tx in db to web display format

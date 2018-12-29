@@ -14,9 +14,10 @@ import (
 )
 
 type AccountTx struct {
-	Name   string `bson:"name"`
-	Time   int64  `bson:"time"`
-	TxHash string `bson:"txHash"`
+	Name          string `bson:"name"`
+	Time          int64  `bson:"time"`
+	TxHash        string `bson:"txHash"`
+	TransferToken string `bson:"token"`
 }
 
 type AccountPubkey struct {
@@ -41,14 +42,25 @@ func NewAccount(name string, time int64, creator string) *Account {
 	}
 }
 
-func GetAccountTxByName(name string, start, limit int) ([]*AccountTx, error) {
+func GetAccountTxByName(name string, start, limit int, onlyTransfer bool, transferToken string) ([]*AccountTx, error) {
 	accountTxC := GetCollection(CollectionAccountTx)
 	//query := bson.M{
 	//	"balance": bson.M{"$ne": 0},
 	//}
+
 	query := bson.M{
 		"name": name,
 	}
+	if onlyTransfer {
+		if transferToken == "*" {
+			query["token"] = bson.M{
+				"$ne": "",
+			}
+		} else {
+			query["token"] = transferToken
+		}
+	}
+
 	var accountTxList []*AccountTx
 	err := accountTxC.Find(query).Sort("-time").Skip(start).Limit(limit).All(&accountTxList)
 	if err != nil {
@@ -57,10 +69,20 @@ func GetAccountTxByName(name string, start, limit int) ([]*AccountTx, error) {
 	return accountTxList, nil
 }
 
-func GetAccountTxNumber(name string) (int, error) {
+func GetAccountTxNumber(name string, onlyTransfer bool, transferToken string) (int, error) {
 	accountTxC := GetCollection(CollectionAccountTx)
+
 	query := bson.M{
 		"name": name,
+	}
+	if onlyTransfer {
+		if transferToken == "*" {
+			query["token"] = bson.M{
+				"$ne": "",
+			}
+		} else {
+			query["token"] = transferToken
+		}
 	}
 	return accountTxC.Find(query).Count()
 }
@@ -277,9 +299,30 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 	accountToTx := make(map[string]bool)
 
 	for _, t := range txs {
-		if t.Publisher != "_Block_Base" && !accountToTx[t.Publisher+t.Hash] {
-			accTxB.Insert(&AccountTx{t.Publisher, blockTime, t.Hash})
-			accountToTx[t.Publisher+t.Hash] = true
+
+		for _, r := range t.TxReceipt.Receipts {
+
+			if r.FuncName == "token.iost/transfer" {
+				var params []string
+				err := json.Unmarshal([]byte(r.Content), &params)
+				if err == nil && len(params) == 5 {
+					if !accountToTx[params[1]+t.Hash] {
+						accTxB.Insert(&AccountTx{params[1], blockTime, t.Hash, params[0]})
+						accountToTx[params[1]+t.Hash] = true
+					}
+					if !accountToTx[params[2]+t.Hash] {
+						accTxB.Insert(&AccountTx{params[2], blockTime, t.Hash, params[0]})
+						accountToTx[params[2]+t.Hash] = true
+					}
+
+					if !isContract(params[1]) {
+						updatedAccounts[params[1]] = struct{}{}
+					}
+					if !isContract(params[2]) {
+						updatedAccounts[params[2]] = struct{}{}
+					}
+				}
+			}
 		}
 
 		for _, a := range t.Actions {
@@ -299,7 +342,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 					}
 
 					if !accountToTx[params[0]+t.Hash] {
-						accTxB.Insert(&AccountTx{params[0], blockTime, t.Hash})
+						accTxB.Insert(&AccountTx{params[0], blockTime, t.Hash, ""})
 						accountToTx[params[0]+t.Hash] = true
 					}
 				}
@@ -331,30 +374,11 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 
 		}
 
-		for _, r := range t.TxReceipt.Receipts {
-
-			if r.FuncName == "token.iost/transfer" {
-				var params []string
-				err := json.Unmarshal([]byte(r.Content), &params)
-				if err == nil && len(params) == 5 {
-					if !accountToTx[params[1]+t.Hash] {
-						accTxB.Insert(&AccountTx{params[1], blockTime, t.Hash})
-						accountToTx[params[1]+t.Hash] = true
-					}
-					if !accountToTx[params[2]+t.Hash] {
-						accTxB.Insert(&AccountTx{params[2], blockTime, t.Hash})
-						accountToTx[params[2]+t.Hash] = true
-					}
-
-					if !isContract(params[1]) {
-						updatedAccounts[params[1]] = struct{}{}
-					}
-					if !isContract(params[2]) {
-						updatedAccounts[params[2]] = struct{}{}
-					}
-				}
-			}
+		if t.Publisher != "_Block_Base" && !accountToTx[t.Publisher+t.Hash] {
+			accTxB.Insert(&AccountTx{t.Publisher, blockTime, t.Hash, ""})
+			accountToTx[t.Publisher+t.Hash] = true
 		}
+
 	}
 
 	wg := new(sync.WaitGroup)

@@ -125,8 +125,14 @@ func GetAccountTxs(c echo.Context) error {
 		pageInt = 1
 	}
 
+	onlyTransfer := c.QueryParam("transfer") == "1"
+	tokenName := c.QueryParam("token")
+	if onlyTransfer && tokenName == "" {
+		tokenName = "*"
+	}
+
 	start := (pageInt - 1) * AccountTxEachPage
-	txHashes, err := db.GetAccountTxByName(account, start, AccountTxEachPage)
+	txHashes, err := db.GetAccountTxByName(account, start, AccountTxEachPage, onlyTransfer, tokenName)
 	if err != nil {
 		return err
 	}
@@ -156,7 +162,7 @@ func GetAccountTxs(c echo.Context) error {
 	// get account len
 	go func() {
 		defer wg.Done()
-		totalLen, err := db.GetAccountTxNumber(account)
+		totalLen, err := db.GetAccountTxNumber(account, onlyTransfer, tokenName)
 		if err != nil {
 			log.Println("GetAccountTxNumber error:", err)
 			return

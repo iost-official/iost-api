@@ -43,9 +43,9 @@ type TxsOutput struct {
 
 func NewTxsOutputFromTxStore(tx *db.TxStore) *TxsOutput {
 	ret := &TxsOutput{TxStore: tx}
-	for _, action := range tx.Tx.Actions {
-		if action.Contract == "token.iost" && action.ActionName == "transfer" {
-			trans := parseContractDataToTransfer(action.Data)
+	for _, receipt := range tx.Tx.TxReceipt.Receipts {
+		if receipt.FuncName == "token.iost/transfer" {
+			trans := parseContractDataToTransfer(receipt.Content)
 			if trans != nil {
 				ret.Transfers = append(ret.Transfers, trans)
 			}
