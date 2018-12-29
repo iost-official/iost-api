@@ -118,7 +118,7 @@ func insertTxs(txs []*rpcpb.Transaction, blockNumber int64) {
 }
 
 func GetTxByHash(hash string) (*TxStore, error) {
-	txnDC := GetCollection(CollectionFlatTx)
+	txnDC := GetCollection(CollectionTxs)
 	query := bson.M{
 		"tx.hash": hash,
 	}
@@ -129,10 +129,10 @@ func GetTxByHash(hash string) (*TxStore, error) {
 }
 
 func GetTxsByHash(hashes []string) ([]*TxStore, error) {
-	txnDC := GetCollection(CollectionFlatTx)
+	txnDC := GetCollection(CollectionTxs)
 	query := bson.M{
-		"$in": bson.M{
-			"tx.hash": hashes,
+		"tx.hash": bson.M{
+			"$in": hashes,
 		},
 	}
 	var txs []*TxStore

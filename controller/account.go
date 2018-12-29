@@ -15,8 +15,6 @@ import (
 	"github.com/labstack/echo"
 
 	"github.com/btcsuite/btcutil/base58"
-	"github.com/iost-official/iost-api/model/db"
-	"github.com/labstack/echo"
 )
 
 type AccountsOutput struct {
@@ -29,9 +27,9 @@ type AccountsOutput struct {
 }
 
 type AccountTxsOutput struct {
-	Account string `json:"account"`
-	// TxnList []*db.JsonFlatTx `json:"txnList"`
-	TxnLen int `json:"txnLen"`
+	Account string        `json:"account"`
+	TxnList []*db.TxStore `json:"txnList"`
+	TxnLen  int           `json:"txnLen"`
 }
 
 //func GetAccounts(c echo.Context) error {
@@ -84,20 +82,27 @@ func GetAccountDetail(c echo.Context) error {
 	if id == "" {
 		return errors.New("id or pubkey required")
 	}
+	names := []string{id}
 
-	if !strings.HasPrefix(id, "IOST") {
-		id = getIDByPubkey(id)
+	if len(id) > 11 { // not an account name
+		if !strings.HasPrefix(id, "IOST") {
+			id = getIDByPubkey(id)
+		}
+
+		accountPubkeys, err := db.GetAccountPubkeyByPubkey(id)
+		if err != nil {
+			return err
+		}
+		names = make([]string, len(accountPubkeys))
+		for i, ap := range accountPubkeys {
+			names[i] = ap.Name
+		}
+
 	}
-
-	accountPubkeys, err := db.GetAccountPubkeyByPubkey(id)
+	accounts, err := db.GetAccountsByNames(names)
 	if err != nil {
 		return err
 	}
-	names := make([]string, len(accountPubkeys))
-	for i, ap := range accountPubkeys {
-		names[i] = ap.Name
-	}
-	accounts, err := db.GetAccountsByNames(names)
 
 	return c.JSON(http.StatusOK, FormatResponse(struct {
 		Accounts []*db.Account `json:"accounts"`
@@ -121,9 +126,13 @@ func GetAccountTxs(c echo.Context) error {
 	}
 
 	start := (pageInt - 1) * AccountTxEachPage
-	_, err = db.GetAccountTxByName(account, start, AccountTxEachPage)
+	txHashes, err := db.GetAccountTxByName(account, start, AccountTxEachPage)
 	if err != nil {
 		return err
+	}
+	hashes := make([]string, len(txHashes))
+	for i, t := range txHashes {
+		hashes[i] = t.TxHash
 	}
 
 	output := &AccountTxsOutput{
@@ -135,7 +144,12 @@ func GetAccountTxs(c echo.Context) error {
 	// get tx detail
 	go func() {
 		defer wg.Done()
-
+		txs, err := db.GetTxsByHash(hashes)
+		if err != nil {
+			log.Println("GetTxsByHash error: ", err)
+			return
+		}
+		output.TxnList = txs
 	}()
 	// get account len
 	go func() {

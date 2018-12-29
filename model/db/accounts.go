@@ -123,19 +123,15 @@ func GetAccountByName(name string) (*Account, error) {
 }
 
 func GetAccountsByNames(names []string) ([]*Account, error) {
-	accountC, err := GetCollection(CollectionAccount)
-	if err != nil {
-		return nil, err
-	}
-
+	accountC := GetCollection(CollectionAccount)
 	query := bson.M{
 		"name": bson.M{
 			"$in": names,
 		},
 	}
-	log.Println(query)
+
 	var accounts []*Account
-	err = accountC.Find(query).All(&accounts)
+	err := accountC.Find(query).All(&accounts)
 
 	if err != nil {
 		return nil, err
