@@ -2,6 +2,7 @@ package db
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"github.com/globalsign/mgo"
@@ -106,7 +107,7 @@ func insertTxs(txs []*rpcpb.Transaction, blockNumber int64) {
 
 	for {
 		err := txnC.Insert(txInterfaces...)
-		if err != nil {
+		if err != nil && strings.Index(err.Error(), "duplicate key") == -1 {
 			log.Println("fail to insert txs, err: ", err)
 			time.Sleep(time.Second)
 			continue
