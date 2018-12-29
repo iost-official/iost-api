@@ -2,10 +2,12 @@ package db
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/iost-official/iost-api/model/blockchain"
 	"github.com/iost-official/iost-api/model/blockchain/rpcpb"
@@ -174,35 +176,107 @@ func GetAccountLastPage(eachPage int64) (int64, error) {
 	return pageLast, nil
 }
 
-func printError(err error) {
-	if err != nil {
-		fmt.Println(err)
+func isContract(name string) bool {
+	return strings.HasPrefix(name, "Contract") || strings.Index(name, ".") > -1
+}
+
+func getAccountsByRPC(accounts map[string]struct{}) []*rpcpb.Account {
+	if len(accounts) == 0 {
+		return nil
+	}
+	accCh := make(chan *rpcpb.Account, len(accounts))
+	for name := range accounts {
+		go func(name string) {
+			accountInfo, err := blockchain.GetAccount(name, false)
+			if err != nil {
+				accCh <- nil
+			} else {
+				accCh <- accountInfo
+			}
+		}(name)
+	}
+
+	var i int
+	var ret []*rpcpb.Account
+	for accountInfo := range accCh {
+		i++
+		if accountInfo != nil {
+			ret = append(ret, accountInfo)
+		}
+		if i == len(accounts) {
+			break
+		}
+	}
+	return ret
+}
+
+func getContractsByRPC(contracts map[string]struct{}) []*rpcpb.Contract {
+	if len(contracts) == 0 {
+		return nil
+	}
+	contCh := make(chan *rpcpb.Contract, len(contracts))
+	for id := range contracts {
+		go func(id string) {
+			contractInfo, err := blockchain.GetContract(id, false)
+			if err != nil {
+				contCh <- nil
+			} else {
+				contCh <- contractInfo
+			}
+		}(id)
+	}
+
+	var i int
+	var ret []*rpcpb.Contract
+	for contractInfo := range contCh {
+		i++
+		if contractInfo != nil {
+			ret = append(ret, contractInfo)
+		}
+		if i == len(contracts) {
+			break
+		}
+	}
+	return ret
+}
+
+func retryWriteMgo(b *mgo.Bulk, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	var retryTime int
+	for {
+		if _, err := b.Run(); err != nil {
+			log.Println("fail to write data to mongo ", err)
+			time.Sleep(time.Second)
+			retryTime++
+			if retryTime > 10 {
+				log.Fatalln("fail to write data to mongo, retry time exceeds")
+			}
+			continue
+		}
+		return
 	}
 }
 
 func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 
-	accTxC, err := GetCollection(CollectionAccountTx)
-	printError(err)
+	accTxC, _ := GetCollection(CollectionAccountTx)
 	accTxB := accTxC.Bulk()
 
-	accountPubC, err := GetCollection(CollectionAccountPubkey)
-	printError(err)
+	accountPubC, _ := GetCollection(CollectionAccountPubkey)
 	accountPubB := accountPubC.Bulk()
 
-	accountC, err := GetCollection(CollectionAccount)
-	printError(err)
+	accountC, _ := GetCollection(CollectionAccount)
 	accountB := accountC.Bulk()
 
-	contractC, err := GetCollection(CollectionContract)
-	printError(err)
+	contractC, _ := GetCollection(CollectionContract)
 	contractB := contractC.Bulk()
 
-	contractTxC, err := GetCollection(CollectionContractTx)
-	printError(err)
+	contractTxC, _ := GetCollection(CollectionContractTx)
 	contractTxB := contractTxC.Bulk()
 
 	updatedAccounts := make(map[string]struct{})
+	updatedContracts := make(map[string]struct{})
 
 	for _, t := range txs {
 
@@ -233,13 +307,19 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 				if err == nil && len(params) == 2 {
 					contractB.Insert(NewContract(params[0], blockTime, t.Publisher))
 					contractTxB.Insert(&ContractTx{params[0], blockTime, t.Hash})
+
+					updatedContracts[params[0]] = struct{}{}
 				}
 			}
 
 			if a.Contract == "system.iost" && a.ActionName == "SetCode" &&
 				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
-				contractB.Insert(NewContract("Contract"+t.Hash, blockTime, t.Publisher))
-				contractTxB.Insert(&ContractTx{"Contract" + t.Hash, blockTime, t.Hash})
+
+				contractID := "Contract" + t.Hash
+				contractB.Insert(NewContract(contractID, blockTime, t.Publisher))
+				contractTxB.Insert(&ContractTx{contractID, blockTime, t.Hash})
+
+				updatedContracts[contractID] = struct{}{}
 			}
 
 			contractTxB.Insert(&ContractTx{a.Contract, blockTime, t.Hash})
@@ -255,10 +335,10 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 					accTxB.Insert(&AccountTx{params[1], blockTime, t.Hash})
 					accTxB.Insert(&AccountTx{params[2], blockTime, t.Hash})
 
-					if strings.Index(params[1], ".") == -1 {
+					if !isContract(params[1]) {
 						updatedAccounts[params[1]] = struct{}{}
 					}
-					if strings.Index(params[2], ".") == -1 {
+					if !isContract(params[2]) {
 						updatedAccounts[params[2]] = struct{}{}
 					}
 				}
@@ -266,38 +346,30 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 		}
 	}
 
-	if len(updatedAccounts) > 0 {
-		accCh := make(chan *rpcpb.Account, len(updatedAccounts))
-		for name, _ := range updatedAccounts {
-			go func(name string) {
-				accountInfo, err := blockchain.GetAccount(name, false)
-				if err != nil {
-					accCh <- nil
-				} else {
-					accCh <- accountInfo
-				}
-			}(name)
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+	go func() {
+		accountInfos := getAccountsByRPC(updatedAccounts)
+		for _, acc := range accountInfos {
+			accountB.Update(bson.M{"name": acc.Name}, bson.M{"$set": bson.M{"accountInfo": acc}})
 		}
+		wg.Done()
+	}()
 
-		var i int
-		for accountInfo := range accCh {
-			i++
-			if accountInfo != nil {
-				accountB.Update(bson.M{"name": accountInfo.Name}, bson.M{"accountInfo": accountInfo})
-			}
-			if i == len(updatedAccounts) {
-				break
-			}
+	go func() {
+		contractInfos := getContractsByRPC(updatedContracts)
+		for _, cont := range contractInfos {
+			contractB.Update(bson.M{"id": cont.Id}, bson.M{"$set": bson.M{"contractInfo": cont}})
 		}
+		wg.Done()
+	}()
+	wg.Wait()
 
-	}
-
-	_, err = accTxB.Run()
-	printError(err)
-	_, err = accountPubB.Run()
-	printError(err)
-	_, err = accountB.Run()
-	printError(err)
-	contractB.Run()
-	contractTxB.Run()
+	wg.Add(5)
+	go retryWriteMgo(accTxB, wg)
+	go retryWriteMgo(accountPubB, wg)
+	go retryWriteMgo(accountB, wg)
+	go retryWriteMgo(contractB, wg)
+	go retryWriteMgo(contractTxB, wg)
+	wg.Wait()
 }

@@ -1,6 +1,9 @@
 package db
 
 import (
+	"log"
+	"time"
+
 	"github.com/globalsign/mgo"
 	"github.com/iost-official/iost-api/util/transport"
 )
@@ -15,10 +18,21 @@ func GetDb() (*mgo.Database, error) {
 }
 
 func GetCollection(c string) (*mgo.Collection, error) {
-	db, err := GetDb()
-	if err != nil {
-		return nil, err
+	var d *mgo.Database
+	var err error
+	var retryTime int
+	for {
+		d, err = GetDb()
+		if err != nil {
+			log.Println("fail to get db collection ", err)
+			time.Sleep(time.Second)
+			retryTime++
+			if retryTime > 10 {
+				log.Fatalln("fail to get db collection, retry time exceeds")
+			}
+			continue
+		}
+		return d.C(c), nil
 	}
 
-	return db.C(c), nil
 }
