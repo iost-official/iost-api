@@ -88,10 +88,7 @@ func GetAccountDetail(c echo.Context) error {
 		return errors.New("Address required")
 	}
 
-	col, err := db.GetCollection(db.CollectionAccount)
-	if err != nil {
-		return err
-	}
+	col := db.GetCollection(db.CollectionAccount)
 
 	if !(address[0:4] != "IOST" || address[0:8] != "Contract") {
 		return errors.New("Invalid address")

@@ -97,17 +97,7 @@ func ProcessTxs(txs []*rpcpb.Transaction, blockNumber int64) error {
 
 func insertTxs(txs []*rpcpb.Transaction, blockNumber int64) {
 	var txnC *mgo.Collection
-	var err error
-	for {
-		txnC, err = GetCollection(CollectionTxs)
-		if err != nil {
-			log.Println("fail to Get db collection, err: ", err)
-			time.Sleep(time.Second)
-			continue
-		} else {
-			break
-		}
-	}
+	txnC = GetCollection(CollectionTxs)
 
 	txInterfaces := make([]interface{}, len(txs))
 	for i, tx := range txs {
@@ -125,6 +115,29 @@ func insertTxs(txs []*rpcpb.Transaction, blockNumber int64) {
 			break
 		}
 	}
+}
+
+func GetTxByHash(hash string) (*TxStore, error) {
+	txnDC := GetCollection(CollectionFlatTx)
+	query := bson.M{
+		"tx.hash": hash,
+	}
+	var tx *TxStore
+	err := txnDC.Find(query).One(&tx)
+
+	return tx, err
+}
+
+func GetTxsByHash(hashes []string) ([]*TxStore, error) {
+	txnDC := GetCollection(CollectionFlatTx)
+	query := bson.M{
+		"$in": bson.M{
+			"tx.hash": hashes,
+		},
+	}
+	var txs []*TxStore
+	err := txnDC.Find(query).All(&txs)
+	return txs, err
 }
 
 // ConvertTxs used to convert tx in db to web display format

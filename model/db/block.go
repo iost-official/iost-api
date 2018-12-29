@@ -28,12 +28,9 @@ type FailBlock struct {
 }
 
 func GetLastBlockNumber() (int64, error) {
-	collection, err := GetCollection("block")
-	if err != nil {
-		return -1, nil
-	}
+	collection := GetCollection("block")
 	var block Block
-	err = collection.Find(bson.M{}).Sort("-blockNumber").One(&block)
+	err := collection.Find(bson.M{}).Sort("-blockNumber").One(&block)
 	if err != nil && err.Error() == "not found" {
 		return 0, nil
 	}
@@ -41,16 +38,12 @@ func GetLastBlockNumber() (int64, error) {
 }
 
 func GetBlockTxnHashes(blockNumber int64) (*[]string, error) {
-	txnC, err := GetCollection(CollectionTxs)
-	if nil != err {
-		log.Println("Get block txn hashes failed", err)
-		return nil, err
-	}
+	txnC := GetCollection(CollectionTxs)
 
 	var hashes []*struct {
 		Hash string `bson:"hash"`
 	}
-	err = txnC.Find(bson.M{"blockNumber": blockNumber}).Select(bson.M{"hash": 1, "_id": 0}).All(&hashes)
+	err := txnC.Find(bson.M{"blockNumber": blockNumber}).Select(bson.M{"hash": 1, "_id": 0}).All(&hashes)
 	if nil != err {
 		log.Println("query block tx failed", err)
 		return nil, err
@@ -95,16 +88,11 @@ func GetBlockTxnHashes(blockNumber int64) (*[]string, error) {
 }*/
 
 func GetBlockByHash(hash string) (*Block, *[]string, error) {
-	blockCollection, err := GetCollection(CollectionBlocks)
-
-	if nil != err {
-		log.Println("get block by hash can not get collection", err)
-		return nil, nil, err
-	}
+	blockCollection := GetCollection(CollectionBlocks)
 
 	var block Block
 
-	err = blockCollection.Find(bson.M{"hash": hash}).One(&block)
+	err := blockCollection.Find(bson.M{"hash": hash}).One(&block)
 	if nil != err {
 		log.Println("get block by hash can not find block by hash", err)
 		return nil, nil, err
@@ -121,17 +109,13 @@ func GetBlockByHash(hash string) (*Block, *[]string, error) {
 }
 
 func GetBlocks(start, limit int) ([]*Block, error) {
-	blockCollection, err := GetCollection(CollectionBlocks)
-	if nil != err {
-		log.Println("Get blocks get blocks db err", err)
-		return nil, err
-	}
+	blockCollection := GetCollection(CollectionBlocks)
 	var (
 		emptyQuery  interface{}
 		blkInfoList []*Block
 	)
 
-	err = blockCollection.Find(emptyQuery).Sort("-blockNumber").Skip(start).Limit(limit).All(&blkInfoList)
+	err := blockCollection.Find(emptyQuery).Sort("-blockNumber").Skip(start).Limit(limit).All(&blkInfoList)
 
 	if nil != err {
 		log.Println("Get blocks collection query err", err)
@@ -142,14 +126,11 @@ func GetBlocks(start, limit int) ([]*Block, error) {
 }
 
 func GetTopBlock() (*rpcpb.Block, error) {
-	collection, err := GetCollection(CollectionBlocks)
-	if err != nil {
-		return nil, err
-	}
+	collection := GetCollection(CollectionBlocks)
 
 	var emptyQuery interface{}
 	var topBlk *rpcpb.Block
-	err = collection.Find(emptyQuery).Sort("-number").Limit(1).One(&topBlk)
+	err := collection.Find(emptyQuery).Sort("-number").Limit(1).One(&topBlk)
 	if err != nil {
 		log.Println("getTopBlock error:", err)
 		return nil, err
@@ -172,16 +153,13 @@ func GetBlockLastPage(eachPage int64) int64 {
 }
 
 func GetBlockByHeight(height int64) (*rpcpb.Block, error) {
-	collection, err := GetCollection(CollectionBlocks)
-	if err != nil {
-		return nil, err
-	}
+	collection := GetCollection(CollectionBlocks)
 
 	blkQuery := bson.M{
 		"number": height,
 	}
 	var blk *rpcpb.Block
-	err = collection.Find(blkQuery).One(&blk)
+	err := collection.Find(blkQuery).One(&blk)
 
 	if err != nil {
 		return nil, err

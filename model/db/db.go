@@ -17,7 +17,7 @@ func GetDb() (*mgo.Database, error) {
 	return mongoClient.DB(Db), nil
 }
 
-func GetCollection(c string) (*mgo.Collection, error) {
+func GetCollection(c string) *mgo.Collection {
 	var d *mgo.Database
 	var err error
 	var retryTime int
@@ -32,7 +32,6 @@ func GetCollection(c string) (*mgo.Collection, error) {
 			}
 			continue
 		}
-		return d.C(c), nil
+		return d.C(c)
 	}
-
 }
