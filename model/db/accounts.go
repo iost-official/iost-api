@@ -59,7 +59,10 @@ func GetAccountTxByName(name string, start, limit int) ([]*AccountTx, error) {
 
 func GetAccountTxNumber(name string) (int, error) {
 	accountTxC := GetCollection(CollectionAccountTx)
-	return accountTxC.Find(bson.M{}).Count()
+	query := bson.M{
+		"name": name,
+	}
+	return accountTxC.Find(query).Count()
 }
 
 func GetAccountPubkeyByName(name string) ([]*AccountPubkey, error) {
