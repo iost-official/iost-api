@@ -25,6 +25,7 @@ func parseContractDataToTransfer(data string) *Transfer {
 	err := json.Unmarshal([]byte(data), &params)
 	if err != nil || len(params) != 5 {
 		log.Println("unmarshal transfer params failed. err: ", err)
+		return nil
 	}
 	return &Transfer{
 		From:   params[1],
