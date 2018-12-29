@@ -274,6 +274,8 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 	updatedAccounts := make(map[string]struct{})
 	updatedContracts := make(map[string]struct{})
 
+	accountToTx := make(map[string]bool)
+
 	for _, t := range txs {
 
 		for _, a := range t.Actions {
@@ -292,7 +294,10 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 						accountPubB.Insert(&AccountPubkey{params[0], params[2]})
 					}
 
-					accTxB.Insert(&AccountTx{params[0], blockTime, t.Hash})
+					if !accountToTx[params[0]+t.Hash] {
+						accTxB.Insert(&AccountTx{params[0], blockTime, t.Hash})
+						accountToTx[params[0]+t.Hash] = true
+					}
 				}
 			}
 
@@ -328,8 +333,14 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 				var params []string
 				err := json.Unmarshal([]byte(r.Content), &params)
 				if err == nil && len(params) == 5 {
-					accTxB.Insert(&AccountTx{params[1], blockTime, t.Hash})
-					accTxB.Insert(&AccountTx{params[2], blockTime, t.Hash})
+					if !accountToTx[params[1]+t.Hash] {
+						accTxB.Insert(&AccountTx{params[1], blockTime, t.Hash})
+						accountToTx[params[1]+t.Hash] = true
+					}
+					if !accountToTx[params[2]+t.Hash] {
+						accTxB.Insert(&AccountTx{params[2], blockTime, t.Hash})
+						accountToTx[params[2]+t.Hash] = true
+					}
 
 					if !isContract(params[1]) {
 						updatedAccounts[params[1]] = struct{}{}
