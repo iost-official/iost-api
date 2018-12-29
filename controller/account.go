@@ -27,9 +27,9 @@ type AccountsOutput struct {
 }
 
 type AccountTxsOutput struct {
-	Account string        `json:"account"`
-	TxnList []*db.TxStore `json:"txnList"`
-	TxnLen  int           `json:"txnLen"`
+	Account string       `json:"account"`
+	TxnList []*TxsOutput `json:"txnList"`
+	TxnLen  int          `json:"txnLen"`
 }
 
 //func GetAccounts(c echo.Context) error {
@@ -149,7 +149,9 @@ func GetAccountTxs(c echo.Context) error {
 			log.Println("GetTxsByHash error: ", err)
 			return
 		}
-		output.TxnList = txs
+		for _, t := range txs {
+			output.TxnList = append(output.TxnList, NewTxsOutputFromTxStore(t))
+		}
 	}()
 	// get account len
 	go func() {

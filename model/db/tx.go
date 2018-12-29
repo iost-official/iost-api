@@ -58,8 +58,8 @@ type Tx struct {
 }
 
 type TxStore struct {
-	BlockNumber int64
-	Tx          *rpcpb.Transaction
+	BlockNumber int64              `json:"block_number"`
+	Tx          *rpcpb.Transaction `json:"tx"`
 }
 
 // 将 Tx.Actions 打平后的数据结构， 如果actionName == Transfer 则会解析出 from, to, amount

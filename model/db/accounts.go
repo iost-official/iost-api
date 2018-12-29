@@ -25,11 +25,11 @@ type AccountPubkey struct {
 }
 
 type Account struct {
-	Name        string         `bson:"name"`
-	CreateTime  int64          `bson:"createTime"`
-	Creator     string         `bson:"creator"`
-	Balance     float64        `bson:"balance"`
-	AccountInfo *rpcpb.Account `bson:"accountInfo"`
+	Name        string         `bson:"name" json:"name"`
+	CreateTime  int64          `bson:"createTime" json:"create_time"`
+	Creator     string         `bson:"creator" json:"creator"`
+	Balance     float64        `bson:"balance" json:"balance"`
+	AccountInfo *rpcpb.Account `bson:"accountInfo" json:"account_info"`
 	// AccountPb   []byte         `bson:"accountPb"`
 }
 
@@ -277,6 +277,10 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 	accountToTx := make(map[string]bool)
 
 	for _, t := range txs {
+		if t.Publisher != "_Block_Base" && !accountToTx[t.Publisher+t.Hash] {
+			accTxB.Insert(&AccountTx{t.Publisher, blockTime, t.Hash})
+			accountToTx[t.Publisher+t.Hash] = true
+		}
 
 		for _, a := range t.Actions {
 
