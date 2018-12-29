@@ -42,15 +42,15 @@ func NewAccount(name string, time int64, creator string) *Account {
 }
 
 func GetAccountTxByName(name string, start, limit int) ([]*AccountTx, error) {
-	accountTxC, err := GetCollection(CollectionAccountTx)
-	if err != nil {
-		return nil, err
-	}
+	accountTxC := GetCollection(CollectionAccountTx)
+	//query := bson.M{
+	//	"balance": bson.M{"$ne": 0},
+	//}
 	query := bson.M{
 		"name": name,
 	}
 	var accountTxList []*AccountTx
-	err = accountTxC.Find(query).Sort("-time").Skip(start).Limit(limit).All(&accountTxList)
+	err := accountTxC.Find(query).Sort("-time").Skip(start).Limit(limit).All(&accountTxList)
 	if err != nil {
 		return nil, err
 	}
@@ -58,10 +58,7 @@ func GetAccountTxByName(name string, start, limit int) ([]*AccountTx, error) {
 }
 
 func GetAccountTxNumber(name string) (int, error) {
-	accountTxC, err := GetCollection(CollectionAccountTx)
-	if err != nil {
-		return 0, err
-	}
+	accountTxC := GetCollection(CollectionAccountTx)
 	query := bson.M{
 		"name": name,
 	}
@@ -69,15 +66,12 @@ func GetAccountTxNumber(name string) (int, error) {
 }
 
 func GetAccountPubkeyByName(name string) ([]*AccountPubkey, error) {
-	accountPubC, err := GetCollection(CollectionAccountPubkey)
-	if err != nil {
-		return nil, err
-	}
+	accountPubC := GetCollection(CollectionAccountPubkey)
 	query := bson.M{
 		"name": name,
 	}
 	var accountPubkeyList []*AccountPubkey
-	err = accountPubC.Find(query).All(&accountPubkeyList)
+	err := accountPubC.Find(query).All(&accountPubkeyList)
 	if err != nil {
 		return nil, err
 	}
@@ -85,15 +79,12 @@ func GetAccountPubkeyByName(name string) ([]*AccountPubkey, error) {
 }
 
 func GetAccountPubkeyByPubkey(pubkey string) ([]*AccountPubkey, error) {
-	accountPubC, err := GetCollection(CollectionAccountPubkey)
-	if err != nil {
-		return nil, err
-	}
+	accountPubC := GetCollection(CollectionAccountPubkey)
 	query := bson.M{
 		"pubkey": pubkey,
 	}
 	var accountPubkeyList []*AccountPubkey
-	err = accountPubC.Find(query).All(&accountPubkeyList)
+	err := accountPubC.Find(query).All(&accountPubkeyList)
 	if err != nil {
 		return nil, err
 	}
@@ -101,16 +92,13 @@ func GetAccountPubkeyByPubkey(pubkey string) ([]*AccountPubkey, error) {
 }
 
 func GetAccounts(start, limit int) ([]*Account, error) {
-	accountC, err := GetCollection(CollectionAccount)
-	if err != nil {
-		return nil, err
-	}
+	accountC := GetCollection(CollectionAccount)
 	//query := bson.M{
 	//	"balance": bson.M{"$ne": 0},
 	//}
 	query := bson.M{}
 	var accountList []*Account
-	err = accountC.Find(query).Sort("-balance").Skip(start).Limit(limit).All(&accountList)
+	err := accountC.Find(query).Sort("-balance").Skip(start).Limit(limit).All(&accountList)
 	if err != nil {
 		return nil, err
 	}
@@ -119,16 +107,13 @@ func GetAccounts(start, limit int) ([]*Account, error) {
 }
 
 func GetAccountByName(name string) (*Account, error) {
-	accountC, err := GetCollection(CollectionAccount)
-	if err != nil {
-		return nil, err
-	}
+	accountC := GetCollection(CollectionAccount)
 
 	query := bson.M{
 		"name": name,
 	}
 	var account *Account
-	err = accountC.Find(query).One(&account)
+	err := accountC.Find(query).One(&account)
 
 	if err != nil {
 		return nil, err
@@ -160,10 +145,7 @@ func GetAccountsByNames(names []string) ([]*Account, error) {
 }
 
 func GetAccountsTotalLen() (int, error) {
-	accountC, err := GetCollection(CollectionAccount)
-	if err != nil {
-		return 0, err
-	}
+	accountC := GetCollection(CollectionAccount)
 	//query := bson.M{
 	//	"balance": bson.M{"$ne": 0},
 	//}
@@ -172,11 +154,7 @@ func GetAccountsTotalLen() (int, error) {
 }
 
 func GetAccountLastPage(eachPage int64) (int64, error) {
-	accountC, err := GetCollection(CollectionAccount)
-	if err != nil {
-		log.Println("GetAccounts get collection error:", err)
-		return 0, err
-	}
+	accountC := GetCollection(CollectionAccount)
 
 	query := bson.M{
 		"balance": bson.M{"$ne": 0},
@@ -282,19 +260,19 @@ func retryWriteMgo(b *mgo.Bulk, wg *sync.WaitGroup) {
 
 func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 
-	accTxC, _ := GetCollection(CollectionAccountTx)
+	accTxC := GetCollection(CollectionAccountTx)
 	accTxB := accTxC.Bulk()
 
-	accountPubC, _ := GetCollection(CollectionAccountPubkey)
+	accountPubC := GetCollection(CollectionAccountPubkey)
 	accountPubB := accountPubC.Bulk()
 
-	accountC, _ := GetCollection(CollectionAccount)
+	accountC := GetCollection(CollectionAccount)
 	accountB := accountC.Bulk()
 
-	contractC, _ := GetCollection(CollectionContract)
+	contractC := GetCollection(CollectionContract)
 	contractB := contractC.Bulk()
 
-	contractTxC, _ := GetCollection(CollectionContractTx)
+	contractTxC := GetCollection(CollectionContractTx)
 	contractTxB := contractTxC.Bulk()
 
 	updatedAccounts := make(map[string]struct{})
