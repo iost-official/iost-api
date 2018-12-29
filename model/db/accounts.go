@@ -137,6 +137,28 @@ func GetAccountByName(name string) (*Account, error) {
 	return account, nil
 }
 
+func GetAccountsByNames(names []string) ([]*Account, error) {
+	accountC, err := GetCollection(CollectionAccount)
+	if err != nil {
+		return nil, err
+	}
+
+	query := bson.M{
+		"name": bson.M{
+			"$in": names,
+		},
+	}
+	log.Println(query)
+	var accounts []*Account
+	err = accountC.Find(query).All(&accounts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return accounts, nil
+}
+
 func GetAccountsTotalLen() (int, error) {
 	accountC, err := GetCollection(CollectionAccount)
 	if err != nil {

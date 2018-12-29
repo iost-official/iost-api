@@ -1,14 +1,19 @@
 package controller
 
 import (
+	"encoding/binary"
 	"errors"
+	"hash/crc32"
 	"net/http"
 	"strconv"
+	"strings"
 
-	"github.com/iost-official/iost-api/model/db"
-	"github.com/labstack/echo"
 	"log"
 	"sync"
+
+	"github.com/btcsuite/btcutil/base58"
+	"github.com/iost-official/iost-api/model/db"
+	"github.com/labstack/echo"
 )
 
 type AccountsOutput struct {
@@ -21,9 +26,9 @@ type AccountsOutput struct {
 }
 
 type AccountTxsOutput struct {
-	Account string           `json:"account"`
-	TxnList []*db.JsonFlatTx `json:"txnList"`
-	TxnLen  int              `json:"txnLen"`
+	Account string `json:"account"`
+	// TxnList []*db.JsonFlatTx `json:"txnList"`
+	TxnLen int `json:"txnLen"`
 }
 
 //func GetAccounts(c echo.Context) error {
@@ -58,73 +63,47 @@ type AccountTxsOutput struct {
 //	return c.JSON(http.StatusOK, FormatResponse(output))
 //}
 
-//func GetAccountDetail(c echo.Context) error {
-//	// TODO 检查地址格式
-//	address := c.Param("id")
-//	if address == "" {
-//		return errors.New("Address required")
-//	}
-//
-//	col, err := db.GetCollection(db.CollectionAccount)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if !(address[0:4] != "IOST" || address[0:8] != "Contract") {
-//		return errors.New("Invalid address")
-//	}
-//
-//	account, err := db.GetAccountByAddress(address)
-//	// 如果记录不存在创建记录
-//	if err != nil && err.Error() == "not found" {
-//		account = &db.Account{
-//			address,
-//			0,
-//			0,
-//			0,
-//		}
-//		err = col.Insert(*account)
-//		if err != nil {
-//			return err
-//		}
-//	} else if err != nil {
-//		return err
-//	}
-//	toUpdate := bson.M{}
-//	txCount, err := db.GetAccountTxCount(address)
-//	if err == nil {
-//		account.TxCount = txCount
-//		toUpdate["tx_count"] = txCount
-//	}
-//	if address[0:4] == "IOST" { // IOST 地址获取余额
-//		balance, err := blockchain.GetBalance(address)
-//		if err == nil {
-//			account.Balance = float64(balance)
-//			toUpdate["balance"] = balance
-//		}
-//	}
-//	err = col.Update(bson.M{"address": address}, bson.M{"$set": toUpdate})
-//
-//	if err != nil {
-//		return err
-//	}
-//
-//	// 合约地址， 获取合约代码
-//	code := ""
-//	if address[0:8] == "Contract" {
-//		txhash := address[8:]
-//		txDetail, _ := db.GetFlatTxnDetailByHash(txhash)
-//		code = txDetail.Action.Data
-//	}
-//
-//	return c.JSON(http.StatusOK, FormatResponse(struct {
-//		db.Account
-//		Code string `json:"code"`
-//	}{
-//		*account,
-//		code,
-//	}))
-//}
+func parity(bit []byte) []byte {
+	crc32q := crc32.MakeTable(crc32.Koopman)
+	crc := crc32.Checksum(bit, crc32q)
+	bs := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bs, crc)
+	return bs
+}
+
+func getIDByPubkey(pubkey string) string {
+	pbk := base58.Decode(pubkey)
+	return "IOST" + base58.Encode(append(pbk, parity(pbk)...))
+}
+
+func GetAccountDetail(c echo.Context) error {
+	id := c.Param("id")
+	if id == "" {
+		return errors.New("id or pubkey required")
+	}
+
+	if !strings.HasPrefix(id, "IOST") {
+		id = getIDByPubkey(id)
+	}
+
+	accountPubkeys, err := db.GetAccountPubkeyByPubkey(id)
+	if err != nil {
+		return err
+	}
+	names := make([]string, len(accountPubkeys))
+	for i, ap := range accountPubkeys {
+		names[i] = ap.Name
+	}
+	accounts, err := db.GetAccountsByNames(names)
+
+	return c.JSON(http.StatusOK, FormatResponse(struct {
+		Accounts []*db.Account `json:"accounts"`
+		Count    int           `json:"count"`
+	}{
+		accounts,
+		len(accounts),
+	}))
+}
 
 func GetAccountTxs(c echo.Context) error {
 	account := c.QueryParam("account")
@@ -139,7 +118,7 @@ func GetAccountTxs(c echo.Context) error {
 	}
 
 	start := (pageInt - 1) * AccountTxEachPage
-	txnList, err := db.GetAccountTxByName(account, start, AccountTxEachPage)
+	_, err = db.GetAccountTxByName(account, start, AccountTxEachPage)
 	if err != nil {
 		return err
 	}
