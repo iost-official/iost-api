@@ -29,7 +29,7 @@ func main() {
 	// accounts
 	e.GET("/api/accounts", controller.GetAccounts)
 	e.GET("/api/account/:id", controller.GetAccountDetail)
-	e.GET("/api/account/:id/txs", controller.GetAccountTxs)
+	e.GET("/api/accountTx", controller.GetAccountTxs)
 
 	// search
 	e.GET("/api/search/:id", controller.GetSearch)
