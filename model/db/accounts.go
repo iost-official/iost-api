@@ -44,9 +44,6 @@ func GetAccountTxByName(name string, start, limit int) ([]*AccountTx, error) {
 	if err != nil {
 		return nil, err
 	}
-	//query := bson.M{
-	//	"balance": bson.M{"$ne": 0},
-	//}
 	query := bson.M{
 		"name": name,
 	}
@@ -63,7 +60,10 @@ func GetAccountTxNumber(name string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return accountTxC.Find(bson.M{}).Count()
+	query := bson.M{
+		"name": name,
+	}
+	return accountTxC.Find(query).Count()
 }
 
 func GetAccountPubkeyByName(name string) ([]*AccountPubkey, error) {
