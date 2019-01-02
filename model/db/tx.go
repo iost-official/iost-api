@@ -2,7 +2,6 @@ package db
 
 import (
 	"log"
-	"strings"
 	"time"
 
 	"github.com/globalsign/mgo"
@@ -100,7 +99,22 @@ func insertTxs(txs []*rpcpb.Transaction, blockNumber int64) {
 	var txnC *mgo.Collection
 	txnC = GetCollection(CollectionTxs)
 
-	txInterfaces := make([]interface{}, len(txs))
+	for _, tx := range txs {
+		txStore := TxStore{BlockNumber: blockNumber, Tx: tx}
+		for {
+			_, err := txnC.Upsert(bson.M{"tx.hash": tx.Hash}, txStore)
+			if err != nil {
+				log.Println("fail to insert txs, err: ", err)
+				time.Sleep(time.Second)
+				continue
+			} else {
+				//log.Println("update txs, txHash: ", tx.Hash)
+				break
+			}
+		}
+	}
+	log.Println("update txs, size: ", len(txs))
+	/*txInterfaces := make([]interface{}, len(txs))
 	for i, tx := range txs {
 		txInterfaces[i] = TxStore{BlockNumber: blockNumber, Tx: tx}
 	}
@@ -115,7 +129,7 @@ func insertTxs(txs []*rpcpb.Transaction, blockNumber int64) {
 			log.Println("update txs, size: ", len(txs))
 			break
 		}
-	}
+	}*/
 }
 
 func GetTxByHash(hash string) (*TxStore, error) {
