@@ -77,6 +77,18 @@ func getIDByPubkey(pubkey string) string {
 	return "IOST" + base58.Encode(append(pbk, parity(pbk)...))
 }
 
+func GetAccountPledge(c echo.Context) error {
+	id := c.Param("id")
+	if id == "" {
+		return errors.New("id required")
+	}
+	pledge, err := db.GetAccountPledge(id)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, FormatResponse(pledge))
+}
+
 func GetAccountDetail(c echo.Context) error {
 	id := c.Param("id")
 	if id == "" {
