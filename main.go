@@ -27,6 +27,7 @@ func main() {
 	// // accounts
 	// e.GET("/api/accounts", controller.GetAccounts)
 	e.GET("/api/accounts/:id", controller.GetAccountDetail)
+	e.GET("/api/pledge/:id", controller.GetAccountPledge)
 	e.GET("/api/accountTx", controller.GetAccountTxs)
 
 	// search

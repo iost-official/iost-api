@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -32,6 +33,11 @@ type Account struct {
 	Balance     float64        `bson:"balance" json:"balance"`
 	AccountInfo *rpcpb.Account `bson:"accountInfo" json:"account_info"`
 	// AccountPb   []byte         `bson:"accountPb"`
+}
+
+type PledgeInfo struct {
+	MyPledge map[string]float64 `json:"my_pledge"`
+	PledgeForMe map[string]float64 `json:"pledge_for_me"`
 }
 
 func NewAccount(name string, time int64, creator string) *Account {
@@ -126,6 +132,44 @@ func GetAccounts(start, limit int) ([]*Account, error) {
 	}
 
 	return accountList, nil
+}
+
+func GetAccountPledge(name string) (*PledgeInfo, error) {
+	result := &PledgeInfo{
+		MyPledge: make(map[string]float64),
+		PledgeForMe: make(map[string]float64),
+	}
+	accountC := GetCollection(CollectionAccount)
+	query := bson.M{
+		"name": name,
+	}
+	var accountList []*Account
+	err := accountC.Find(query).All(&accountList)
+	if err != nil {
+		return nil, err
+	}
+	if len(accountList) == 0 {
+		return nil, fmt.Errorf("account name %v not exist", name)
+	}
+	for _, item := range accountList[0].AccountInfo.GasInfo.PledgedInfo {
+		result.MyPledge[item.Pledger] = item.Amount
+	}
+	query2 := bson.M{
+		"accountInfo.gasinfo.pledgedinfo.pledger": name,
+	}
+	accountList = make([]*Account, 0)
+	err = accountC.Find(query2).All(&accountList)
+	if err != nil {
+		return nil, err
+	}
+	for _, acc := range accountList {
+		for _, item := range acc.AccountInfo.GasInfo.PledgedInfo {
+			if item.Pledger == name {
+				result.PledgeForMe[acc.Name] = item.Amount
+			}
+		}
+	}
+	return result, nil
 }
 
 func GetAccountByName(name string) (*Account, error) {
@@ -368,6 +412,17 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 				contractTxB.Insert(&ContractTx{contractID, blockTime, t.Hash})
 
 				updatedContracts[contractID] = struct{}{}
+			}
+
+			if a.Contract == "gas.iost" && (a.ActionName == "pledge" || a.ActionName == "unpledge") &&
+				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
+				var params []string
+				err := json.Unmarshal([]byte(a.Data), &params)
+				if err == nil && len(params) == 3 {
+					if !isContract(params[0]) {
+						updatedAccounts[params[0]] = struct{}{}
+					}
+				}
 			}
 
 			contractTxB.Insert(&ContractTx{a.Contract, blockTime, t.Hash})
