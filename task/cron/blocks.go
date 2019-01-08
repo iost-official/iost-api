@@ -66,12 +66,10 @@ func insertBlock(blockChannel chan *rpcpb.Block) {
 			go func() {
 				db.ProcessTxs(txs, b.Number)
 				wg.Done()
-				log.Println("liushiqi finish")
 			}()
 			go func() {
 				db.ProcessTxsForAccount(txs, b.Time)
 				wg.Done()
-				log.Println("liuziran finish")
 			}()
 			wg.Wait()
 

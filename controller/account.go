@@ -94,26 +94,24 @@ func GetAccountDetail(c echo.Context) error {
 	if id == "" {
 		return errors.New("id or pubkey required")
 	}
-	names := []string{id}
 
+	var accounts []*db.Account
+	var err error
 	if len(id) > 11 { // not an account name
 		if !strings.HasPrefix(id, "IOST") {
 			id = getIDByPubkey(id)
 		}
 
-		accountPubkeys, err := db.GetAccountPubkeyByPubkey(id)
+		accounts, err = db.GetAccountsByPubkey(id)
 		if err != nil {
 			return err
 		}
-		names = make([]string, len(accountPubkeys))
-		for i, ap := range accountPubkeys {
-			names[i] = ap.Name
+	} else {
+		account, err := db.GetAccountByName(id)
+		if err != nil {
+			return err
 		}
-
-	}
-	accounts, err := db.GetAccountsByNames(names)
-	if err != nil {
-		return err
+		accounts = append(accounts, account)
 	}
 
 	return c.JSON(http.StatusOK, FormatResponse(struct {
@@ -128,7 +126,7 @@ func GetAccountDetail(c echo.Context) error {
 func GetAccountTxs(c echo.Context) error {
 	account := c.QueryParam("account")
 	if account == "" {
-		return errors.New("address requied")
+		return errors.New("account requied")
 	}
 
 	page := c.QueryParam("page")
@@ -139,9 +137,6 @@ func GetAccountTxs(c echo.Context) error {
 
 	onlyTransfer := c.QueryParam("transfer") == "1"
 	tokenName := c.QueryParam("token")
-	if onlyTransfer && tokenName == "" {
-		tokenName = "*"
-	}
 
 	start := (pageInt - 1) * AccountTxEachPage
 	txHashes, err := db.GetAccountTxByName(account, start, AccountTxEachPage, onlyTransfer, tokenName)

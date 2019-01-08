@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -15,28 +16,22 @@ import (
 )
 
 type AccountTx struct {
-	Name          string `bson:"name"`
-	Time          int64  `bson:"time"`
-	TxHash        string `bson:"txHash"`
-	TransferToken string `bson:"token"`
-}
-
-type AccountPubkey struct {
-	Name   string `bson:"name"`
-	Pubkey string `bson:"pubkey"`
+	Name           string   `bson:"name"`
+	Time           int64    `bson:"time"`
+	TxHash         string   `bson:"txHash"`
+	TransferTokens []string `bson:"tokens,omitempty"`
 }
 
 type Account struct {
 	Name        string         `bson:"name" json:"name"`
 	CreateTime  int64          `bson:"createTime" json:"create_time"`
 	Creator     string         `bson:"creator" json:"creator"`
-	Balance     float64        `bson:"balance" json:"balance"`
 	AccountInfo *rpcpb.Account `bson:"accountInfo" json:"account_info"`
-	// AccountPb   []byte         `bson:"accountPb"`
+	Pubkeys     []string       `bson:"pubkeys" json:"-"`
 }
 
 type PledgeInfo struct {
-	MyPledge map[string]float64 `json:"my_pledge"`
+	MyPledge    map[string]float64 `json:"my_pledge"`
 	PledgeForMe map[string]float64 `json:"pledge_for_me"`
 }
 
@@ -48,25 +43,26 @@ func NewAccount(name string, time int64, creator string) *Account {
 	}
 }
 
-func GetAccountTxByName(name string, start, limit int, onlyTransfer bool, transferToken string) ([]*AccountTx, error) {
-	accountTxC := GetCollection(CollectionAccountTx)
-	//query := bson.M{
-	//	"balance": bson.M{"$ne": 0},
-	//}
-
+func getAccTxQuery(name string, onlyTransfer bool, transferToken string) bson.M {
 	query := bson.M{
 		"name": name,
 	}
 	if onlyTransfer {
-		if transferToken == "*" {
-			query["token"] = bson.M{
-				"$ne": "",
+		if transferToken == "" {
+			query["tokens"] = bson.M{
+				"$nin": []interface{}{nil},
 			}
 		} else {
-			query["token"] = transferToken
+			query["tokens"] = transferToken
 		}
 	}
+	return query
+}
 
+func GetAccountTxByName(name string, start, limit int, onlyTransfer bool, transferToken string) ([]*AccountTx, error) {
+	accountTxC := GetCollection(CollectionAccountTx)
+
+	query := getAccTxQuery(name, onlyTransfer, transferToken)
 	var accountTxList []*AccountTx
 	err := accountTxC.Find(query).Sort("-time").Skip(start).Limit(limit).All(&accountTxList)
 	if err != nil {
@@ -78,45 +74,8 @@ func GetAccountTxByName(name string, start, limit int, onlyTransfer bool, transf
 func GetAccountTxNumber(name string, onlyTransfer bool, transferToken string) (int, error) {
 	accountTxC := GetCollection(CollectionAccountTx)
 
-	query := bson.M{
-		"name": name,
-	}
-	if onlyTransfer {
-		if transferToken == "*" {
-			query["token"] = bson.M{
-				"$ne": "",
-			}
-		} else {
-			query["token"] = transferToken
-		}
-	}
+	query := getAccTxQuery(name, onlyTransfer, transferToken)
 	return accountTxC.Find(query).Count()
-}
-
-func GetAccountPubkeyByName(name string) ([]*AccountPubkey, error) {
-	accountPubC := GetCollection(CollectionAccountPubkey)
-	query := bson.M{
-		"name": name,
-	}
-	var accountPubkeyList []*AccountPubkey
-	err := accountPubC.Find(query).All(&accountPubkeyList)
-	if err != nil {
-		return nil, err
-	}
-	return accountPubkeyList, nil
-}
-
-func GetAccountPubkeyByPubkey(pubkey string) ([]*AccountPubkey, error) {
-	accountPubC := GetCollection(CollectionAccountPubkey)
-	query := bson.M{
-		"pubkey": pubkey,
-	}
-	var accountPubkeyList []*AccountPubkey
-	err := accountPubC.Find(query).All(&accountPubkeyList)
-	if err != nil {
-		return nil, err
-	}
-	return accountPubkeyList, nil
 }
 
 func GetAccounts(start, limit int) ([]*Account, error) {
@@ -136,7 +95,7 @@ func GetAccounts(start, limit int) ([]*Account, error) {
 
 func GetAccountPledge(name string) (*PledgeInfo, error) {
 	result := &PledgeInfo{
-		MyPledge: make(map[string]float64),
+		MyPledge:    make(map[string]float64),
 		PledgeForMe: make(map[string]float64),
 	}
 	accountC := GetCollection(CollectionAccount)
@@ -206,6 +165,20 @@ func GetAccountsByNames(names []string) ([]*Account, error) {
 	return accounts, nil
 }
 
+func GetAccountsByPubkey(pubkey string) ([]*Account, error) {
+	accountC := GetCollection(CollectionAccount)
+	query := bson.M{
+		"pubkeys": pubkey,
+	}
+	var accounts []*Account
+	err := accountC.Find(query).All(&accounts)
+	if err != nil {
+		return nil, err
+	}
+	return accounts, nil
+
+}
+
 func GetAccountsTotalLen() (int, error) {
 	accountC := GetCollection(CollectionAccount)
 	//query := bson.M{
@@ -272,6 +245,30 @@ func getAccountsByRPC(accounts map[string]struct{}) []*rpcpb.Account {
 	return ret
 }
 
+func getPubkeys(acc *rpcpb.Account) []string {
+	var ret []string
+	pkSet := make(map[string]struct{})
+	for _, perm := range acc.Permissions {
+		for _, item := range perm.Items {
+			if item.IsKeyPair {
+				pkSet[item.Id] = struct{}{}
+			}
+		}
+	}
+	for _, group := range acc.Groups {
+		for _, item := range group.Items {
+			if item.IsKeyPair {
+				pkSet[item.Id] = struct{}{}
+			}
+		}
+	}
+	for pk := range pkSet {
+		ret = append(ret, pk)
+	}
+	sort.Strings(ret)
+	return ret
+}
+
 func getContractsByRPC(contracts map[string]struct{}) []*rpcpb.Contract {
 	if len(contracts) == 0 {
 		return nil
@@ -320,6 +317,32 @@ func retryWriteMgo(b *mgo.Bulk, wg *sync.WaitGroup) {
 	}
 }
 
+func gatherAccountTxs(accountTxs map[string]*AccountTx, name, txHash string, time int64, token *string) {
+	if isContract(name) {
+		return
+	}
+	key := name + "@" + txHash
+
+	accTx := accountTxs[key]
+	if accTx == nil {
+		accTx = &AccountTx{name, time, txHash, nil}
+	}
+	if token != nil {
+		var exist bool
+		for _, t := range accTx.TransferTokens {
+			if t == *token {
+				exist = true
+				break
+			}
+		}
+
+		if !exist {
+			accTx.TransferTokens = append(accTx.TransferTokens, *token)
+		}
+	}
+	accountTxs[key] = accTx
+}
+
 func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 
 	accTxC := GetCollection(CollectionAccountTx)
@@ -338,26 +361,22 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 	contractTxB := contractTxC.Bulk()
 
 	updatedAccounts := make(map[string]struct{})
+	updatePubkey := make(map[string]bool)
 	updatedContracts := make(map[string]struct{})
 
-	accountToTx := make(map[string]bool)
+	accountTxs := make(map[string]*AccountTx)
 
 	for _, t := range txs {
 
 		for _, r := range t.TxReceipt.Receipts {
 
+			// transfer
 			if r.FuncName == "token.iost/transfer" {
 				var params []string
 				err := json.Unmarshal([]byte(r.Content), &params)
 				if err == nil && len(params) == 5 {
-					if !accountToTx[params[1]+t.Hash] {
-						accTxB.Insert(&AccountTx{params[1], blockTime, t.Hash, params[0]})
-						accountToTx[params[1]+t.Hash] = true
-					}
-					if !accountToTx[params[2]+t.Hash] {
-						accTxB.Insert(&AccountTx{params[2], blockTime, t.Hash, params[0]})
-						accountToTx[params[2]+t.Hash] = true
-					}
+					gatherAccountTxs(accountTxs, params[1], t.Hash, blockTime, &params[0])
+					gatherAccountTxs(accountTxs, params[2], t.Hash, blockTime, &params[0])
 
 					if !isContract(params[1]) {
 						updatedAccounts[params[1]] = struct{}{}
@@ -367,30 +386,33 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 					}
 				}
 			}
-		}
 
-		for _, a := range t.Actions {
-
-			// create account
-			if a.Contract == "auth.iost" && a.ActionName == "SignUp" &&
-				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
+			// create user
+			if r.FuncName == "auth.iost/SignUp" {
 				var params []string
-				err := json.Unmarshal([]byte(a.Data), &params)
+				err := json.Unmarshal([]byte(r.Content), &params)
 				if err == nil && len(params) == 3 {
-					account := NewAccount(params[0], blockTime, t.Publisher)
-					accountB.Insert(account)
+					accountB.Upsert(bson.M{"name": params[0]}, bson.M{"$set": bson.M{"createTime": blockTime, "creator": t.Publisher}})
 
-					accountPubB.Insert(&AccountPubkey{params[0], params[1]})
-					if params[1] != params[2] {
-						accountPubB.Insert(&AccountPubkey{params[0], params[2]})
-					}
+					gatherAccountTxs(accountTxs, params[0], t.Hash, blockTime, nil)
+					updatePubkey[params[0]] = true
+				}
+			}
 
-					if !accountToTx[params[0]+t.Hash] {
-						accTxB.Insert(&AccountTx{params[0], blockTime, t.Hash, ""})
-						accountToTx[params[0]+t.Hash] = true
+			// update pubkey
+			if strings.HasPrefix(r.FuncName, "auth.iost/") {
+				var params []string
+				err := json.Unmarshal([]byte(r.Content), &params)
+				if err == nil && len(params) > 0 {
+					if !isContract(params[0]) {
+						updatedAccounts[params[0]] = struct{}{}
+						updatePubkey[params[0]] = true
 					}
 				}
 			}
+		}
+
+		for _, a := range t.Actions {
 
 			if a.Contract == "system.iost" && a.ActionName == "InitSetCode" &&
 				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
@@ -426,14 +448,16 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 			}
 
 			contractTxB.Insert(&ContractTx{a.Contract, blockTime, t.Hash})
-
 		}
 
-		if t.Publisher != "_Block_Base" && !accountToTx[t.Publisher+t.Hash] {
-			accTxB.Insert(&AccountTx{t.Publisher, blockTime, t.Hash, ""})
-			accountToTx[t.Publisher+t.Hash] = true
+		if t.Publisher != "_Block_Base" {
+			gatherAccountTxs(accountTxs, t.Publisher, t.Hash, blockTime, nil)
 		}
 
+	}
+
+	for _, accTx := range accountTxs {
+		accTxB.Insert(accTx)
 	}
 
 	wg := new(sync.WaitGroup)
@@ -442,6 +466,12 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 		accountInfos := getAccountsByRPC(updatedAccounts)
 		for _, acc := range accountInfos {
 			accountB.Update(bson.M{"name": acc.Name}, bson.M{"$set": bson.M{"accountInfo": acc}})
+			if updatePubkey[acc.Name] {
+				pks := getPubkeys(acc)
+				if len(pks) > 0 {
+					accountB.Update(bson.M{"name": acc.Name}, bson.M{"$set": bson.M{"pubkeys": pks}})
+				}
+			}
 		}
 		wg.Done()
 	}()
