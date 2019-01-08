@@ -152,6 +152,9 @@ func GetTxsByHash(hashes []string) ([]*TxStore, error) {
 	}
 	var txs []*TxStore
 	err := txnDC.Find(query).All(&txs)
+	if err != nil {
+		return nil, err
+	}
 
 	txMap := make(map[string]*TxStore)
 	for _, t := range txs {
