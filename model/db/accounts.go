@@ -388,7 +388,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 			}
 
 			// create user
-			if r.FuncName == "auth.iost/SignUp" {
+			if r.FuncName == "auth.iost/signUp" {
 				var params []string
 				err := json.Unmarshal([]byte(r.Content), &params)
 				if err == nil && len(params) == 3 {
@@ -414,7 +414,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 
 		for _, a := range t.Actions {
 
-			if a.Contract == "system.iost" && a.ActionName == "InitSetCode" &&
+			if a.Contract == "system.iost" && a.ActionName == "initSetCode" &&
 				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
 				var params []string
 				err := json.Unmarshal([]byte(a.Data), &params)
@@ -426,7 +426,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 				}
 			}
 
-			if a.Contract == "system.iost" && a.ActionName == "SetCode" &&
+			if a.Contract == "system.iost" && a.ActionName == "setCode" &&
 				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
 
 				contractID := "Contract" + t.Hash
