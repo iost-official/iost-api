@@ -1,10 +1,11 @@
 {
   "rpcHost": "47.244.109.92:30002",
   "mongodb": {
-    "host": "127.0.0.1",
+    "host": "172.31.33.126",
     "port": "27017",
-    "username": "api",
-    "password": "123456789",
-    "db": "api"
+    "username": "",
+    "password": "",
+    "db": "testnet24",
+    "mongoLink": "mongodb:\/\/172.31.33.126:27017,172.31.42.33:27017,172.31.44.114:27017\/?replicaSet=explorer"
   }
 }
