@@ -1,8 +1,7 @@
 package main
 
 import (
-	"eosbet-go/config"
-
+	"github.com/iost-official/iost-api/config"
 	"github.com/iost-official/iost-api/controller"
 	"github.com/iost-official/iost-api/middleware"
 	"github.com/labstack/echo"
@@ -10,7 +9,7 @@ import (
 )
 
 func main() {
-	config.ReadConfig()
+	config.ReadConfig("")
 	e := echo.New()
 	e.Debug = true
 	e.HTTPErrorHandler = middleware.CustomHTTPErrorHandler
