@@ -27,9 +27,9 @@ func main() {
 
 	// // accounts
 	// e.GET("/api/accounts", controller.GetAccounts)
-	e.GET("/api/accounts/:id", controller.GetAccountDetail)
-	e.GET("/api/pledge/:id", controller.GetAccountPledge)
-	e.GET("/api/accountTx", controller.GetAccountTxs)
+	e.GET("/iost-api/accounts/:id", controller.GetAccountDetail)
+	e.GET("/iost-api/pledge/:id", controller.GetAccountPledge)
+	e.GET("/iost-api/accountTx", controller.GetAccountTxs)
 
 	// search
 	// e.GET("/api/search/:id", controller.GetSearch)
