@@ -1,10 +1,10 @@
 GO = go
 
-TARGET = explorer-task
+TARGET = iost-api-task
 
 all:$(TARGET)
 
-explorer-task: task.go
+iost-api-task: task.go
 	$(GO) build -o $@ $^
 
 clean:

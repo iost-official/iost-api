@@ -1,8 +1,7 @@
 package main
 
 import (
-	"eosbet-go/config"
-
+	"github.com/iost-official/iost-api/config"
 	"github.com/iost-official/iost-api/controller"
 	"github.com/iost-official/iost-api/middleware"
 	"github.com/labstack/echo"
@@ -10,7 +9,7 @@ import (
 )
 
 func main() {
-	config.ReadConfig()
+	config.ReadConfig("")
 	e := echo.New()
 	e.Debug = true
 	e.HTTPErrorHandler = middleware.CustomHTTPErrorHandler
@@ -28,9 +27,9 @@ func main() {
 
 	// // accounts
 	// e.GET("/api/accounts", controller.GetAccounts)
-	e.GET("/api/accounts/:id", controller.GetAccountDetail)
-	e.GET("/api/pledge/:id", controller.GetAccountPledge)
-	e.GET("/api/accountTx", controller.GetAccountTxs)
+	e.GET("/iost-api/accounts/:id", controller.GetAccountDetail)
+	e.GET("/iost-api/pledge/:id", controller.GetAccountPledge)
+	e.GET("/iost-api/accountTx", controller.GetAccountTxs)
 
 	// search
 	// e.GET("/api/search/:id", controller.GetSearch)
