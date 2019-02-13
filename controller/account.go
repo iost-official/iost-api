@@ -6,7 +6,6 @@ import (
 	"hash/crc32"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"log"
 	"sync"
