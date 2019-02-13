@@ -98,9 +98,6 @@ func GetAccountDetail(c echo.Context) error {
 	var accounts []*db.Account
 	var err error
 	if len(id) > 11 { // not an account name
-		if !strings.HasPrefix(id, "IOST") {
-			id = getIDByPubkey(id)
-		}
 
 		accounts, err = db.GetAccountsByPubkey(id)
 		if err != nil {
