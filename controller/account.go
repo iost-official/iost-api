@@ -1,9 +1,7 @@
 package controller
 
 import (
-	"encoding/binary"
 	"errors"
-	"hash/crc32"
 	"net/http"
 	"strconv"
 
@@ -12,8 +10,6 @@ import (
 
 	"github.com/iost-official/iost-api/model/db"
 	"github.com/labstack/echo"
-
-	"github.com/btcsuite/btcutil/base58"
 )
 
 type AccountsOutput struct {
@@ -62,19 +58,6 @@ type AccountTxsOutput struct {
 //
 //	return c.JSON(http.StatusOK, FormatResponse(output))
 //}
-
-func parity(bit []byte) []byte {
-	crc32q := crc32.MakeTable(crc32.Koopman)
-	crc := crc32.Checksum(bit, crc32q)
-	bs := make([]byte, 4)
-	binary.LittleEndian.PutUint32(bs, crc)
-	return bs
-}
-
-func getIDByPubkey(pubkey string) string {
-	pbk := base58.Decode(pubkey)
-	return "IOST" + base58.Encode(append(pbk, parity(pbk)...))
-}
 
 func GetAccountPledge(c echo.Context) error {
 	id := c.Param("id")

@@ -348,9 +348,6 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 	accTxC := GetCollection(CollectionAccountTx)
 	accTxB := accTxC.Bulk()
 
-	accountPubC := GetCollection(CollectionAccountPubkey)
-	accountPubB := accountPubC.Bulk()
-
 	accountC := GetCollection(CollectionAccount)
 	accountB := accountC.Bulk()
 
@@ -485,9 +482,8 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 	}()
 	wg.Wait()
 
-	wg.Add(5)
+	wg.Add(4)
 	go retryWriteMgo(accTxB, wg)
-	go retryWriteMgo(accountPubB, wg)
 	go retryWriteMgo(accountB, wg)
 	go retryWriteMgo(contractB, wg)
 	go retryWriteMgo(contractTxB, wg)

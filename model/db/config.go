@@ -14,16 +14,15 @@ var (
 )
 
 const (
-	CollectionBlocks        = "blocks"
-	CollectionTxs           = "txs"
-	CollectionFlatTx        = "flatxs"
-	CollectionAccount       = "accounts"
-	CollectionAccountTx     = "accountTx"
-	CollectionAccountPubkey = "accountPubkey"
-	CollectionContract      = "contracts"
-	CollectionContractTx    = "contractTx"
-	CollectionTaskCursor    = "taskCursors"
-	CollectionBlockPay      = "blockPays"
+	CollectionBlocks     = "blocks"
+	CollectionTxs        = "txs"
+	CollectionFlatTx     = "flatxs"
+	CollectionAccount    = "accounts"
+	CollectionAccountTx  = "accountTx"
+	CollectionContract   = "contracts"
+	CollectionContractTx = "contractTx"
+	CollectionTaskCursor = "taskCursors"
+	CollectionBlockPay   = "blockPays"
 )
 
 func InitConfig() {
