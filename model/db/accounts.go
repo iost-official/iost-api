@@ -81,7 +81,7 @@ func GetAccountTxByNameAndPos(name, pos string, limit int, onlyTransfer bool, tr
 	accountTxC := GetCollection(CollectionAccountTx)
 
 	query := getAccTxQuery(name, onlyTransfer, transferToken)
-	query["_id"] = bson.M{"$lt": d}
+	query["_id"] = bson.M{"$lt": bson.ObjectId(d)}
 	var accountTxList []*AccountTx
 	err = accountTxC.Find(query).Sort("-_id").Limit(limit).All(&accountTxList)
 	if err != nil {
