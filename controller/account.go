@@ -108,23 +108,40 @@ func GetAccountTxs(c echo.Context) error {
 		return errors.New("account requied")
 	}
 
-	page := c.QueryParam("page")
-	pageInt, err := strconv.Atoi(page)
-	if err != nil || pageInt <= 0 {
-		pageInt = 1
-	}
-
 	onlyTransfer := c.QueryParam("transfer") == "1"
 	tokenName := c.QueryParam("token")
 
-	start := (pageInt - 1) * AccountTxEachPage
-	txHashes, err := db.GetAccountTxByName(account, start, AccountTxEachPage, onlyTransfer, tokenName)
-	if err != nil {
-		return err
+	var accountTxs []*db.AccountTx
+
+	pos := c.QueryParam("pos")
+	if pos != "" {
+		offset := c.QueryParam("offset")
+		offsetInt, err := strconv.Atoi(offset)
+		if err != nil || offsetInt <= 0 {
+			offsetInt = AccountTxEachPage
+		}
+		accountTxs, err = db.GetAccountTxByNameAndPos(account, pos, offsetInt, onlyTransfer, tokenName)
+		if err != nil {
+			return err
+		}
+	} else {
+		page := c.QueryParam("page")
+		pageInt, err := strconv.Atoi(page)
+		if err != nil || pageInt <= 0 {
+			pageInt = 1
+		}
+		start := (pageInt - 1) * AccountTxEachPage
+		accountTxs, err = db.GetAccountTxByName(account, start, AccountTxEachPage, onlyTransfer, tokenName)
+		if err != nil {
+			return err
+		}
 	}
-	hashes := make([]string, len(txHashes))
-	for i, t := range txHashes {
+
+	hashes := make([]string, len(accountTxs))
+	hashToUID := make(map[string]string)
+	for i, t := range accountTxs {
 		hashes[i] = t.TxHash
+		hashToUID[t.TxHash] = string(t.ID)
 	}
 
 	output := &AccountTxsOutput{
@@ -142,7 +159,7 @@ func GetAccountTxs(c echo.Context) error {
 			return
 		}
 		for _, t := range txs {
-			output.TxnList = append(output.TxnList, NewTxsOutputFromTxStore(t))
+			output.TxnList = append(output.TxnList, NewTxsOutputFromTxStore(t, hashToUID[t.Tx.Hash]))
 		}
 	}()
 	// get account len

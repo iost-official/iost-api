@@ -39,10 +39,11 @@ func parseContractDataToTransfer(data string) *Transfer {
 type TxsOutput struct {
 	*db.TxStore
 	Transfers []*Transfer `json:"transfers"`
+	UniqID    string      `json:"uniq_id"`
 }
 
-func NewTxsOutputFromTxStore(tx *db.TxStore) *TxsOutput {
-	ret := &TxsOutput{TxStore: tx}
+func NewTxsOutputFromTxStore(tx *db.TxStore, uniqID string) *TxsOutput {
+	ret := &TxsOutput{TxStore: tx, UniqID: uniqID}
 	for _, receipt := range tx.Tx.TxReceipt.Receipts {
 		if receipt.FuncName == "token.iost/transfer" {
 			trans := parseContractDataToTransfer(receipt.Content)

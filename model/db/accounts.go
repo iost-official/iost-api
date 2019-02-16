@@ -16,10 +16,11 @@ import (
 )
 
 type AccountTx struct {
-	Name           string   `bson:"name"`
-	Time           int64    `bson:"time"`
-	TxHash         string   `bson:"txHash"`
-	TransferTokens []string `bson:"tokens,omitempty"`
+	ID             bson.ObjectId `bson:"_id,omitempty" json:"id"`
+	Name           string        `bson:"name"`
+	Time           int64         `bson:"time"`
+	TxHash         string        `bson:"txHash"`
+	TransferTokens []string      `bson:"tokens,omitempty"`
 }
 
 type Account struct {
@@ -65,6 +66,19 @@ func GetAccountTxByName(name string, start, limit int, onlyTransfer bool, transf
 	query := getAccTxQuery(name, onlyTransfer, transferToken)
 	var accountTxList []*AccountTx
 	err := accountTxC.Find(query).Sort("-time").Skip(start).Limit(limit).All(&accountTxList)
+	if err != nil {
+		return nil, err
+	}
+	return accountTxList, nil
+}
+
+func GetAccountTxByNameAndPos(name, pos string, limit int, onlyTransfer bool, transferToken string) ([]*AccountTx, error) {
+	accountTxC := GetCollection(CollectionAccountTx)
+
+	query := getAccTxQuery(name, onlyTransfer, transferToken)
+	query["_id"] = bson.M{"$lt": pos}
+	var accountTxList []*AccountTx
+	err := accountTxC.Find(query).Sort("-_id").Limit(limit).All(&accountTxList)
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +339,7 @@ func gatherAccountTxs(accountTxs map[string]*AccountTx, name, txHash string, tim
 
 	accTx := accountTxs[key]
 	if accTx == nil {
-		accTx = &AccountTx{name, time, txHash, nil}
+		accTx = &AccountTx{"", name, time, txHash, nil}
 	}
 	if token != nil {
 		var exist bool
