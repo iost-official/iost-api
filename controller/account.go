@@ -141,7 +141,7 @@ func GetAccountTxs(c echo.Context) error {
 	hashToUID := make(map[string]string)
 	for i, t := range accountTxs {
 		hashes[i] = t.TxHash
-		hashToUID[t.TxHash] = string(t.ID)
+		hashToUID[t.TxHash] = t.ID.Hex()
 	}
 
 	output := &AccountTxsOutput{

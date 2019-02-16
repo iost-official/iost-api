@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -73,12 +74,16 @@ func GetAccountTxByName(name string, start, limit int, onlyTransfer bool, transf
 }
 
 func GetAccountTxByNameAndPos(name, pos string, limit int, onlyTransfer bool, transferToken string) ([]*AccountTx, error) {
+	d, err := hex.DecodeString(pos)
+	if err != nil {
+		return nil, err
+	}
 	accountTxC := GetCollection(CollectionAccountTx)
 
 	query := getAccTxQuery(name, onlyTransfer, transferToken)
-	query["_id"] = bson.M{"$lt": pos}
+	query["_id"] = bson.M{"$lt": d}
 	var accountTxList []*AccountTx
-	err := accountTxC.Find(query).Sort("-_id").Limit(limit).All(&accountTxList)
+	err = accountTxC.Find(query).Sort("-_id").Limit(limit).All(&accountTxList)
 	if err != nil {
 		return nil, err
 	}
