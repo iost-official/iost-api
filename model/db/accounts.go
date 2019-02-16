@@ -90,6 +90,7 @@ func GetAccountTxByNameAndPos(name, pos string, limit int, onlyTransfer bool, tr
 	var sort = "-_id"
 	if ascending {
 		sort = "_id"
+		query["_id"] = bson.M{"$gt": bson.ObjectId(d)}
 	}
 	err = accountTxC.Find(query).Sort(sort).Limit(limit).All(&accountTxList)
 	if err != nil {
