@@ -61,19 +61,23 @@ func getAccTxQuery(name string, onlyTransfer bool, transferToken string) bson.M 
 	return query
 }
 
-func GetAccountTxByName(name string, start, limit int, onlyTransfer bool, transferToken string) ([]*AccountTx, error) {
+func GetAccountTxByName(name string, start, limit int, onlyTransfer bool, transferToken string, ascending bool) ([]*AccountTx, error) {
 	accountTxC := GetCollection(CollectionAccountTx)
 
 	query := getAccTxQuery(name, onlyTransfer, transferToken)
 	var accountTxList []*AccountTx
-	err := accountTxC.Find(query).Sort("-time").Skip(start).Limit(limit).All(&accountTxList)
+	var sort = "-time"
+	if ascending {
+		sort = "time"
+	}
+	err := accountTxC.Find(query).Sort(sort).Skip(start).Limit(limit).All(&accountTxList)
 	if err != nil {
 		return nil, err
 	}
 	return accountTxList, nil
 }
 
-func GetAccountTxByNameAndPos(name, pos string, limit int, onlyTransfer bool, transferToken string) ([]*AccountTx, error) {
+func GetAccountTxByNameAndPos(name, pos string, limit int, onlyTransfer bool, transferToken string, ascending bool) ([]*AccountTx, error) {
 	d, err := hex.DecodeString(pos)
 	if err != nil {
 		return nil, err
@@ -81,9 +85,13 @@ func GetAccountTxByNameAndPos(name, pos string, limit int, onlyTransfer bool, tr
 	accountTxC := GetCollection(CollectionAccountTx)
 
 	query := getAccTxQuery(name, onlyTransfer, transferToken)
-	query["_id"] = bson.M{"$lt": d}
+	query["_id"] = bson.M{"$lt": bson.ObjectId(d)}
 	var accountTxList []*AccountTx
-	err = accountTxC.Find(query).Sort("-_id").Limit(limit).All(&accountTxList)
+	var sort = "-_id"
+	if ascending {
+		sort = "_id"
+	}
+	err = accountTxC.Find(query).Sort(sort).Limit(limit).All(&accountTxList)
 	if err != nil {
 		return nil, err
 	}

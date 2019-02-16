@@ -110,6 +110,7 @@ func GetAccountTxs(c echo.Context) error {
 
 	onlyTransfer := c.QueryParam("transfer") == "1"
 	tokenName := c.QueryParam("token")
+	ascending := c.QueryParam("ascending") == "1"
 
 	var accountTxs []*db.AccountTx
 
@@ -120,7 +121,7 @@ func GetAccountTxs(c echo.Context) error {
 		if err != nil || offsetInt <= 0 {
 			offsetInt = AccountTxEachPage
 		}
-		accountTxs, err = db.GetAccountTxByNameAndPos(account, pos, offsetInt, onlyTransfer, tokenName)
+		accountTxs, err = db.GetAccountTxByNameAndPos(account, pos, offsetInt, onlyTransfer, tokenName, ascending)
 		if err != nil {
 			return err
 		}
@@ -131,7 +132,7 @@ func GetAccountTxs(c echo.Context) error {
 			pageInt = 1
 		}
 		start := (pageInt - 1) * AccountTxEachPage
-		accountTxs, err = db.GetAccountTxByName(account, start, AccountTxEachPage, onlyTransfer, tokenName)
+		accountTxs, err = db.GetAccountTxByName(account, start, AccountTxEachPage, onlyTransfer, tokenName, ascending)
 		if err != nil {
 			return err
 		}
