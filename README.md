@@ -11,20 +11,20 @@ Iost explorer backend
 
 ### How to deploy
 
-1. clone code to $GOPATH/src/github.com/iost-official/explorer
+1. clone code to $GOPATH/src/github.com/iost-official/iost-api
 2. add config file cp backend/config/config.json.sample backend/config/config.json
     update the ```rpcHost```, ```mongodb``` config if need
 3. Run blockchain sync task: 
 ```bash
-cd backend/task
+cd task
 make
-nohup ./task &
+nohup ./iost-api-task &
 ```
 4. Run REST api service
 ```bash
-cd backend
-make
-nohup ./backend &
+cd $GOPATH/src/github.com/iost-official/iost-api 
+make 
+nohup ./iost-api&
 ```
 
 
