@@ -30,6 +30,6 @@ func InitConfig() {
 	Db = dbConfig["db"]
 	MongoUser = dbConfig["username"]
 	MongoPassWord = dbConfig["password"]
-	MongoLink = dbConfig["mongoLink"]
+	MongoLink = dbConfig["mongolink"]
 	fmt.Println("mongolink", Db, MongoLink)
 }
