@@ -102,6 +102,80 @@ func GetAccountDetail(c echo.Context) error {
 	}))
 }
 
+func GetContractTxs(c echo.Context) error {
+	contractID := c.QueryParam("contractId")
+	if contractID == "" {
+		return errors.New("account requied")
+	}
+
+	ascending := c.QueryParam("ascending") == "1"
+
+	var accountTxs []*db.AccountTx
+
+	pos := c.QueryParam("pos")
+	if pos != "" {
+		offset := c.QueryParam("offset")
+		offsetInt, err := strconv.Atoi(offset)
+		if err != nil || offsetInt <= 0 {
+			offsetInt = AccountTxEachPage
+		}
+		accountTxs, err = db.GetContractTxByNameAndPos(contractID, pos, offsetInt, ascending)
+		if err != nil {
+			return err
+		}
+	} else {
+		page := c.QueryParam("page")
+		pageInt, err := strconv.Atoi(page)
+		if err != nil || pageInt <= 0 {
+			pageInt = 1
+		}
+		start := (pageInt - 1) * AccountTxEachPage
+		accountTxs, err = db.GetContractTxByName(contractID, start, AccountTxEachPage, ascending)
+		if err != nil {
+			return err
+		}
+	}
+
+	hashes := make([]string, len(accountTxs))
+	hashToUID := make(map[string]string)
+	for i, t := range accountTxs {
+		hashes[i] = t.TxHash
+		hashToUID[t.TxHash] = t.ID.Hex()
+	}
+
+	output := &AccountTxsOutput{
+		Account: contractID,
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	// get tx detail
+	go func() {
+		defer wg.Done()
+		txs, err := db.GetTxsByHash(hashes)
+		if err != nil {
+			log.Println("GetTxsByHash error: ", err)
+			return
+		}
+		for _, t := range txs {
+			output.TxnList = append(output.TxnList, NewTxsOutputFromTxStore(t, hashToUID[t.Tx.Hash]))
+		}
+	}()
+	// get account len
+	go func() {
+		defer wg.Done()
+		totalLen, err := db.GetContractTxNumber(contractID)
+		if err != nil {
+			log.Println("GetAccountTxNumber error:", err)
+			return
+		}
+		output.TxnLen = totalLen
+	}()
+	wg.Wait()
+
+	return c.JSON(http.StatusOK, FormatResponse(output))
+}
+
 func GetAccountTxs(c echo.Context) error {
 	account := c.QueryParam("account")
 	if account == "" {

@@ -45,6 +45,12 @@ func NewAccount(name string, time int64, creator string) *Account {
 	}
 }
 
+func getContractTxQuery(id string) bson.M {
+	query := bson.M{
+		"id": id,
+	}
+	return query
+}
 func getAccTxQuery(name string, onlyTransfer bool, transferToken string) bson.M {
 	query := bson.M{
 		"name": name,
@@ -59,6 +65,46 @@ func getAccTxQuery(name string, onlyTransfer bool, transferToken string) bson.M 
 		}
 	}
 	return query
+}
+
+func GetContractTxByName(name string, start, limit int, ascending bool) ([]*AccountTx, error) {
+	accountTxC := GetCollection(CollectionContractTx)
+
+	query := getContractTxQuery(name)
+	var accountTxList []*AccountTx
+	var sort = "-time"
+	if ascending {
+		sort = "time"
+	}
+	err := accountTxC.Find(query).Sort(sort).Skip(start).Limit(limit).All(&accountTxList)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(query)
+	fmt.Println(accountTxList)
+	return accountTxList, nil
+}
+
+func GetContractTxByNameAndPos(name, pos string, limit int, ascending bool) ([]*AccountTx, error) {
+	d, err := hex.DecodeString(pos)
+	if err != nil {
+		return nil, err
+	}
+	accountTxC := GetCollection(CollectionContractTx)
+
+	query := getContractTxQuery(name)
+	query["_id"] = bson.M{"$lt": bson.ObjectId(d)}
+	var accountTxList []*AccountTx
+	var sort = "-_id"
+	if ascending {
+		sort = "_id"
+		query["_id"] = bson.M{"$gt": bson.ObjectId(d)}
+	}
+	err = accountTxC.Find(query).Sort(sort).Limit(limit).All(&accountTxList)
+	if err != nil {
+		return nil, err
+	}
+	return accountTxList, nil
 }
 
 func GetAccountTxByName(name string, start, limit int, onlyTransfer bool, transferToken string, ascending bool) ([]*AccountTx, error) {
@@ -97,6 +143,13 @@ func GetAccountTxByNameAndPos(name, pos string, limit int, onlyTransfer bool, tr
 		return nil, err
 	}
 	return accountTxList, nil
+}
+
+func GetContractTxNumber(name string) (int, error) {
+	contractTxC := GetCollection(CollectionContractTx)
+
+	query := getContractTxQuery(name)
+	return contractTxC.Find(query).Count()
 }
 
 func GetAccountTxNumber(name string, onlyTransfer bool, transferToken string) (int, error) {
