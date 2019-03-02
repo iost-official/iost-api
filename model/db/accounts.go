@@ -488,6 +488,9 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 					}
 				}
 			}
+
+			// update contract tx
+			contractTxB.Insert(&ContractTx{r.FuncName[:strings.Index(r.FuncName, "/")], blockTime, t.Hash})
 		}
 
 		for _, a := range t.Actions {
@@ -514,6 +517,15 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 				updatedContracts[contractID] = struct{}{}
 			}
 
+			if a.Contract == "system.iost" && a.ActionName == "updateCode" &&
+				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
+				var params []string
+				err := json.Unmarshal([]byte(a.Data), &params)
+				if err == nil && len(params) == 3 {
+					updatedContracts[params[0]] = struct{}{}
+				}
+			}
+
 			if a.Contract == "gas.iost" && (a.ActionName == "pledge" || a.ActionName == "unpledge") &&
 				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
 				var params []string
@@ -528,7 +540,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 			contractTxB.Insert(&ContractTx{a.Contract, blockTime, t.Hash})
 		}
 
-		if t.Publisher != "_Block_Base" {
+		if t.Publisher != "base.iost" {
 			gatherAccountTxs(accountTxs, t.Publisher, t.Hash, blockTime, nil)
 		}
 
