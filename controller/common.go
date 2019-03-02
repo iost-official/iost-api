@@ -6,8 +6,9 @@ type CommOutput struct {
 }
 
 const (
-	AccountTxEachPage = 25
-	AccountMaxPage    = 20
+	ContractTxEachPage = 25
+	AccountTxEachPage  = 25
+	AccountMaxPage     = 20
 )
 
 type Response struct {

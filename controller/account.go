@@ -27,6 +27,12 @@ type AccountTxsOutput struct {
 	TxnLen  int          `json:"txnLen"`
 }
 
+type ContractTxsOutput struct {
+	Contract string       `json:"contract"`
+	TxnList  []*TxsOutput `json:"txnList"`
+	TxnLen   int          `json:"txnLen"`
+}
+
 //func GetAccounts(c echo.Context) error {
 //	page := c.QueryParam("p")
 //
@@ -110,16 +116,16 @@ func GetContractTxs(c echo.Context) error {
 
 	ascending := c.QueryParam("ascending") == "1"
 
-	var accountTxs []*db.AccountTx
+	var contractTxs []*db.ContractTx
 
 	pos := c.QueryParam("pos")
 	if pos != "" {
 		offset := c.QueryParam("offset")
 		offsetInt, err := strconv.Atoi(offset)
 		if err != nil || offsetInt <= 0 {
-			offsetInt = AccountTxEachPage
+			offsetInt = ContractTxEachPage
 		}
-		accountTxs, err = db.GetContractTxByNameAndPos(contractID, pos, offsetInt, ascending)
+		contractTxs, err = db.GetContractTxByIDAndPos(contractID, pos, offsetInt, ascending)
 		if err != nil {
 			return err
 		}
@@ -129,22 +135,22 @@ func GetContractTxs(c echo.Context) error {
 		if err != nil || pageInt <= 0 {
 			pageInt = 1
 		}
-		start := (pageInt - 1) * AccountTxEachPage
-		accountTxs, err = db.GetContractTxByName(contractID, start, AccountTxEachPage, ascending)
+		start := (pageInt - 1) * ContractTxEachPage
+		contractTxs, err = db.GetContractTxByID(contractID, start, ContractTxEachPage, ascending)
 		if err != nil {
 			return err
 		}
 	}
 
-	hashes := make([]string, len(accountTxs))
+	hashes := make([]string, len(contractTxs))
 	hashToUID := make(map[string]string)
-	for i, t := range accountTxs {
+	for i, t := range contractTxs {
 		hashes[i] = t.TxHash
-		hashToUID[t.TxHash] = t.ID.Hex()
+		hashToUID[t.TxHash] = t.BID.Hex()
 	}
 
-	output := &AccountTxsOutput{
-		Account: contractID,
+	output := &ContractTxsOutput{
+		Contract: contractID,
 	}
 
 	var wg sync.WaitGroup

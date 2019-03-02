@@ -45,12 +45,6 @@ func NewAccount(name string, time int64, creator string) *Account {
 	}
 }
 
-func getContractTxQuery(id string) bson.M {
-	query := bson.M{
-		"id": id,
-	}
-	return query
-}
 func getAccTxQuery(name string, onlyTransfer bool, transferToken string) bson.M {
 	query := bson.M{
 		"name": name,
@@ -65,46 +59,6 @@ func getAccTxQuery(name string, onlyTransfer bool, transferToken string) bson.M 
 		}
 	}
 	return query
-}
-
-func GetContractTxByName(name string, start, limit int, ascending bool) ([]*AccountTx, error) {
-	accountTxC := GetCollection(CollectionContractTx)
-
-	query := getContractTxQuery(name)
-	var accountTxList []*AccountTx
-	var sort = "-time"
-	if ascending {
-		sort = "time"
-	}
-	err := accountTxC.Find(query).Sort(sort).Skip(start).Limit(limit).All(&accountTxList)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(query)
-	fmt.Println(accountTxList)
-	return accountTxList, nil
-}
-
-func GetContractTxByNameAndPos(name, pos string, limit int, ascending bool) ([]*AccountTx, error) {
-	d, err := hex.DecodeString(pos)
-	if err != nil {
-		return nil, err
-	}
-	accountTxC := GetCollection(CollectionContractTx)
-
-	query := getContractTxQuery(name)
-	query["_id"] = bson.M{"$lt": bson.ObjectId(d)}
-	var accountTxList []*AccountTx
-	var sort = "-_id"
-	if ascending {
-		sort = "_id"
-		query["_id"] = bson.M{"$gt": bson.ObjectId(d)}
-	}
-	err = accountTxC.Find(query).Sort(sort).Limit(limit).All(&accountTxList)
-	if err != nil {
-		return nil, err
-	}
-	return accountTxList, nil
 }
 
 func GetAccountTxByName(name string, start, limit int, onlyTransfer bool, transferToken string, ascending bool) ([]*AccountTx, error) {
@@ -143,13 +97,6 @@ func GetAccountTxByNameAndPos(name, pos string, limit int, onlyTransfer bool, tr
 		return nil, err
 	}
 	return accountTxList, nil
-}
-
-func GetContractTxNumber(name string) (int, error) {
-	contractTxC := GetCollection(CollectionContractTx)
-
-	query := getContractTxQuery(name)
-	return contractTxC.Find(query).Count()
 }
 
 func GetAccountTxNumber(name string, onlyTransfer bool, transferToken string) (int, error) {
@@ -398,6 +345,19 @@ func retryWriteMgo(b *mgo.Bulk, wg *sync.WaitGroup) {
 	}
 }
 
+func gatherContractTxs(contractTxs map[string]*ContractTx, cid, txHash string, time int64) {
+	if !isContract(cid) {
+		return
+	}
+	key := cid + "@" + txHash
+
+	contractTxs[key] = &ContractTx{
+		ID:     cid,
+		Time:   time,
+		TxHash: txHash,
+	}
+}
+
 func gatherAccountTxs(accountTxs map[string]*AccountTx, name, txHash string, time int64, token *string) {
 	if isContract(name) {
 		return
@@ -443,6 +403,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 	updatedContracts := make(map[string]struct{})
 
 	accountTxs := make(map[string]*AccountTx)
+	contractTxs := make(map[string]*ContractTx)
 
 	for _, t := range txs {
 
@@ -466,7 +427,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 			}
 
 			// create user
-			if r.FuncName == "auth.iost/signUp" {
+			if r.FuncName == "auth.iost/signUp" && t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
 				var params []string
 				err := json.Unmarshal([]byte(r.Content), &params)
 				if err == nil && len(params) == 3 {
@@ -478,7 +439,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 			}
 
 			// update pubkey
-			if strings.HasPrefix(r.FuncName, "auth.iost/") {
+			if strings.HasPrefix(r.FuncName, "auth.iost/") && t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
 				var params []string
 				err := json.Unmarshal([]byte(r.Content), &params)
 				if err == nil && len(params) > 0 {
@@ -490,7 +451,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 			}
 
 			// update contract tx
-			contractTxB.Insert(&ContractTx{r.FuncName[:strings.Index(r.FuncName, "/")], blockTime, t.Hash})
+			gatherContractTxs(contractTxs, r.FuncName[:strings.Index(r.FuncName, "/")], t.Hash, blockTime)
 		}
 
 		for _, a := range t.Actions {
@@ -500,8 +461,8 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 				var params []string
 				err := json.Unmarshal([]byte(a.Data), &params)
 				if err == nil && len(params) == 2 {
-					contractB.Insert(NewContract(params[0], blockTime, t.Publisher))
-					contractTxB.Insert(&ContractTx{params[0], blockTime, t.Hash})
+					contractB.Upsert(bson.M{"id": params[0]}, bson.M{"$set": bson.M{"createTime": blockTime, "creator": t.Publisher}})
+					gatherContractTxs(contractTxs, params[0], t.Hash, blockTime)
 
 					updatedContracts[params[0]] = struct{}{}
 				}
@@ -511,8 +472,8 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
 
 				contractID := "Contract" + t.Hash
-				contractB.Insert(NewContract(contractID, blockTime, t.Publisher))
-				contractTxB.Insert(&ContractTx{contractID, blockTime, t.Hash})
+				contractB.Upsert(bson.M{"id": contractID}, bson.M{"$set": bson.M{"createTime": blockTime, "creator": t.Publisher}})
+				gatherContractTxs(contractTxs, contractID, t.Hash, blockTime)
 
 				updatedContracts[contractID] = struct{}{}
 			}
@@ -522,6 +483,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 				var params []string
 				err := json.Unmarshal([]byte(a.Data), &params)
 				if err == nil && len(params) == 3 {
+					gatherContractTxs(contractTxs, params[0], t.Hash, blockTime)
 					updatedContracts[params[0]] = struct{}{}
 				}
 			}
@@ -537,7 +499,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 				}
 			}
 
-			contractTxB.Insert(&ContractTx{a.Contract, blockTime, t.Hash})
+			gatherContractTxs(contractTxs, a.Contract, t.Hash, blockTime)
 		}
 
 		if t.Publisher != "base.iost" {
@@ -548,6 +510,9 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 
 	for _, accTx := range accountTxs {
 		accTxB.Insert(accTx)
+	}
+	for _, contTx := range contractTxs {
+		contractTxB.Insert(contTx)
 	}
 
 	wg := new(sync.WaitGroup)
