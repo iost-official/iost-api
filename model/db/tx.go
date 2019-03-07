@@ -163,7 +163,11 @@ func GetTxsByHash(hashes []string) ([]*TxStore, error) {
 
 	ret := make([]*TxStore, 0, len(txMap))
 	for _, hash := range hashes {
-		ret = append(ret, txMap[hash])
+		if txMap[hash] != nil {
+			ret = append(ret, txMap[hash])
+		} else {
+			log.Printf("tx not exists, hash=%v", hash)
+		}
 	}
 
 	return ret, err

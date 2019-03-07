@@ -125,6 +125,9 @@ func GetContractTxs(c echo.Context) error {
 		if err != nil || offsetInt <= 0 {
 			offsetInt = ContractTxEachPage
 		}
+		if offsetInt > 100 {
+			offsetInt = 100
+		}
 		contractTxs, err = db.GetContractTxByIDAndPos(contractID, pos, offsetInt, ascending)
 		if err != nil {
 			return err
@@ -200,6 +203,9 @@ func GetAccountTxs(c echo.Context) error {
 		offsetInt, err := strconv.Atoi(offset)
 		if err != nil || offsetInt <= 0 {
 			offsetInt = AccountTxEachPage
+		}
+		if offsetInt > 100 {
+			offsetInt = 100
 		}
 		accountTxs, err = db.GetAccountTxByNameAndPos(account, pos, offsetInt, onlyTransfer, tokenName, ascending)
 		if err != nil {
