@@ -7,7 +7,9 @@ type CommOutput struct {
 
 const (
 	ContractTxEachPage = 25
+	ContractTxMaxCount = 100
 	AccountTxEachPage  = 25
+	AccountTxMaxCount  = 100
 	AccountMaxPage     = 20
 )
 

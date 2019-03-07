@@ -125,8 +125,8 @@ func GetContractTxs(c echo.Context) error {
 		if err != nil || offsetInt <= 0 {
 			offsetInt = ContractTxEachPage
 		}
-		if offsetInt > 100 {
-			offsetInt = 100
+		if offsetInt > ContractTxMaxCount {
+			offsetInt = ContractTxMaxCount
 		}
 		contractTxs, err = db.GetContractTxByIDAndPos(contractID, pos, offsetInt, ascending)
 		if err != nil {
@@ -137,6 +137,9 @@ func GetContractTxs(c echo.Context) error {
 		pageInt, err := strconv.Atoi(page)
 		if err != nil || pageInt <= 0 {
 			pageInt = 1
+		}
+		if pageInt > ContractTxMaxCount {
+			pageInt = ContractTxMaxCount
 		}
 		start := (pageInt - 1) * ContractTxEachPage
 		contractTxs, err = db.GetContractTxByID(contractID, start, ContractTxEachPage, ascending)
@@ -214,8 +217,8 @@ func GetAccountTxs(c echo.Context) error {
 		if err != nil || offsetInt <= 0 {
 			offsetInt = AccountTxEachPage
 		}
-		if offsetInt > 100 {
-			offsetInt = 100
+		if offsetInt > AccountTxMaxCount {
+			offsetInt = AccountTxMaxCount
 		}
 		accountTxs, err = db.GetAccountTxByNameAndPos(account, pos, offsetInt, onlyTransfer, tokenName, ascending)
 		if err != nil {
@@ -226,6 +229,9 @@ func GetAccountTxs(c echo.Context) error {
 		pageInt, err := strconv.Atoi(page)
 		if err != nil || pageInt <= 0 {
 			pageInt = 1
+		}
+		if pageInt > AccountTxMaxCount {
+			pageInt = AccountTxMaxCount
 		}
 		start := (pageInt - 1) * AccountTxEachPage
 		accountTxs, err = db.GetAccountTxByName(account, start, AccountTxEachPage, onlyTransfer, tokenName, ascending)
