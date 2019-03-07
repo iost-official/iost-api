@@ -160,6 +160,11 @@ func GetContractTxs(c echo.Context) error {
 	wg.Add(2)
 	// get tx detail
 	go func() {
+		defer func() {
+			if e := recover(); e != nil {
+				log.Printf("GetTxsByHash panic. err=%v", e)
+			}
+		}()
 		defer wg.Done()
 		txs, err := db.GetTxsByHash(hashes)
 		if err != nil {
@@ -172,6 +177,11 @@ func GetContractTxs(c echo.Context) error {
 	}()
 	// get account len
 	go func() {
+		defer func() {
+			if e := recover(); e != nil {
+				log.Printf("GetAccountTxNumber panic. err=%v", e)
+			}
+		}()
 		defer wg.Done()
 		totalLen, err := db.GetContractTxNumber(contractID)
 		if err != nil {
@@ -239,6 +249,11 @@ func GetAccountTxs(c echo.Context) error {
 	wg.Add(2)
 	// get tx detail
 	go func() {
+		defer func() {
+			if e := recover(); e != nil {
+				log.Printf("GetTxsByHash panic. err=%v", e)
+			}
+		}()
 		defer wg.Done()
 		txs, err := db.GetTxsByHash(hashes)
 		if err != nil {
@@ -251,6 +266,11 @@ func GetAccountTxs(c echo.Context) error {
 	}()
 	// get account len
 	go func() {
+		defer func() {
+			if e := recover(); e != nil {
+				log.Printf("GetAccountTxNumber panic. err=%v", e)
+			}
+		}()
 		defer wg.Done()
 		totalLen, err := db.GetAccountTxNumber(account, onlyTransfer, tokenName)
 		if err != nil {
