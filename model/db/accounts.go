@@ -440,12 +440,13 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 
 			// update pubkey
 			if strings.HasPrefix(r.FuncName, "auth.iost/") && t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
-				var params []string
+				var params []interface{}
 				err := json.Unmarshal([]byte(r.Content), &params)
 				if err == nil && len(params) > 0 {
-					if !isContract(params[0]) {
-						updatedAccounts[params[0]] = struct{}{}
-						updatePubkey[params[0]] = true
+					name := params[0].(string)
+					if !isContract(name) {
+						updatedAccounts[name] = struct{}{}
+						updatePubkey[name] = true
 					}
 				}
 			}
