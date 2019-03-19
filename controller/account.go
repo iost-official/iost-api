@@ -91,6 +91,9 @@ func GetAccountDetail(c echo.Context) error {
 		if err != nil {
 			return err
 		}
+		if len(accounts) == 0 {
+			return errors.New("not found")
+		}
 	} else {
 		account, err := db.GetAccountByName(id)
 		if err != nil {
