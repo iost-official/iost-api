@@ -153,7 +153,7 @@ func GetContractTxs(c echo.Context) error {
 		}
 	}
 	s1 := time.Now().UnixNano()
-	log.Printf("GetContractTx costs %d ns", s1-s)
+	log.Printf("GetContractTx costs %d ns, contractId=%v", s1-s, contractID)
 
 	hashes := make([]string, len(contractTxs))
 	hashToUID := make(map[string]string)
@@ -185,7 +185,7 @@ func GetContractTxs(c echo.Context) error {
 		for _, t := range txs {
 			output.TxnList = append(output.TxnList, NewTxsOutputFromTxStore(t, hashToUID[t.Tx.Hash]))
 		}
-		log.Printf("GetTxDetail costs %d ns", time.Now().UnixNano()-s)
+		log.Printf("GetTxDetail costs %d ns, contractId: %v", time.Now().UnixNano()-s, contractID)
 	}()
 	// get account len
 	go func() {
@@ -202,10 +202,10 @@ func GetContractTxs(c echo.Context) error {
 			return
 		}
 		output.TxnLen = totalLen
-		log.Printf("GetTxDetail costs %d ns", time.Now().UnixNano()-s)
+		log.Printf("GetTxCount costs %d ns, contractId: %v", time.Now().UnixNano()-s, contractID)
 	}()
 	wg.Wait()
-	log.Printf("GetTxDetailAndCount costs %d ns", time.Now().UnixNano()-s1)
+	log.Printf("GetTxDetailAndCount costs %d ns, contractId: %v", time.Now().UnixNano()-s1, contractID)
 
 	return c.JSON(http.StatusOK, FormatResponse(output))
 }

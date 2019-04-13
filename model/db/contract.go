@@ -2,6 +2,8 @@ package db
 
 import (
 	"encoding/hex"
+	"log"
+	"time"
 
 	"github.com/globalsign/mgo/bson"
 	"github.com/iost-official/iost-api/model/blockchain/rpcpb"
@@ -69,7 +71,9 @@ func GetContractTxByIDAndPos(id, pos string, limit int, ascending bool) ([]*Cont
 		sort = "_id"
 		query["_id"] = bson.M{"$gt": bson.ObjectId(d)}
 	}
+	s := time.Now().UnixNano()
 	err = contractTxC.Find(query).Sort(sort).Limit(limit).All(&contractTxList)
+	log.Printf("ContractTx query cost %d ns, sql: %+v", time.Now().UnixNano()-s, query)
 	if err != nil {
 		return nil, err
 	}
