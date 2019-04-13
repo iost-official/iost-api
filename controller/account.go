@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"log"
 	"sync"
@@ -121,6 +122,7 @@ func GetContractTxs(c echo.Context) error {
 
 	var contractTxs []*db.ContractTx
 
+	s := time.Now().UnixNano()
 	pos := c.QueryParam("pos")
 	if pos != "" {
 		offset := c.QueryParam("offset")
@@ -150,6 +152,8 @@ func GetContractTxs(c echo.Context) error {
 			return err
 		}
 	}
+	s1 := time.Now().UnixNano()
+	log.Printf("GetContractTx costs %d ns", s1-s)
 
 	hashes := make([]string, len(contractTxs))
 	hashToUID := make(map[string]string)
@@ -171,6 +175,7 @@ func GetContractTxs(c echo.Context) error {
 				log.Printf("GetTxsByHash panic. err=%v", e)
 			}
 		}()
+		s := time.Now().UnixNano()
 		defer wg.Done()
 		txs, err := db.GetTxsByHash(hashes)
 		if err != nil {
@@ -180,6 +185,7 @@ func GetContractTxs(c echo.Context) error {
 		for _, t := range txs {
 			output.TxnList = append(output.TxnList, NewTxsOutputFromTxStore(t, hashToUID[t.Tx.Hash]))
 		}
+		log.Printf("GetTxDetail costs %d ns", time.Now().UnixNano()-s)
 	}()
 	// get account len
 	go func() {
@@ -188,6 +194,7 @@ func GetContractTxs(c echo.Context) error {
 				log.Printf("GetAccountTxNumber panic. err=%v", e)
 			}
 		}()
+		s := time.Now().UnixNano()
 		defer wg.Done()
 		totalLen, err := db.GetContractTxNumber(contractID)
 		if err != nil {
@@ -195,8 +202,10 @@ func GetContractTxs(c echo.Context) error {
 			return
 		}
 		output.TxnLen = totalLen
+		log.Printf("GetTxDetail costs %d ns", time.Now().UnixNano()-s)
 	}()
 	wg.Wait()
+	log.Printf("GetTxDetailAndCount costs %d ns", time.Now().UnixNano()-s1)
 
 	return c.JSON(http.StatusOK, FormatResponse(output))
 }
