@@ -31,6 +31,7 @@ func main() {
 	e.GET("/iost-api/pledge/:id", controller.GetAccountPledge)
 	e.GET("/iost-api/accountTx", controller.GetAccountTxs)
 	e.GET("/iost-api/contractTx", controller.GetContractTxs)
+	e.GET("/iost-api/candidates", controller.GetCandidates)
 
 	// search
 	// e.GET("/api/search/:id", controller.GetSearch)

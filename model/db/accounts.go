@@ -327,6 +327,31 @@ func getContractsByRPC(contracts map[string]struct{}) []*rpcpb.Contract {
 	return ret
 }
 
+func getCandidatesByRPC(candidates map[string]struct{}) map[string]*rpcpb.GetProducerVoteInfoResponse {
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	var m sync.Mutex
+	var wg sync.WaitGroup
+	ret := make(map[string]*rpcpb.GetProducerVoteInfoResponse, len(candidates))
+
+	wg.Add(len(candidates))
+	for id := range candidates {
+		go func(id string) {
+			producer, err := blockchain.GetProducer(id, false)
+			if err == nil {
+				m.Lock()
+				ret[id] = producer
+				m.Unlock()
+			}
+			wg.Done()
+		}(id)
+	}
+	wg.Wait()
+	return ret
+}
+
 func retryWriteMgo(b *mgo.Bulk, wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -398,9 +423,13 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 	contractTxC := GetCollection(CollectionContractTx)
 	contractTxB := contractTxC.Bulk()
 
+	candidateC := GetCollection(CollectionCandidate)
+	candidateB := candidateC.Bulk()
+
 	updatedAccounts := make(map[string]struct{})
 	updatePubkey := make(map[string]bool)
 	updatedContracts := make(map[string]struct{})
+	updatedCandidates := make(map[string]struct{})
 
 	accountTxs := make(map[string]*AccountTx)
 	contractTxs := make(map[string]*ContractTx)
@@ -448,6 +477,27 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 						updatedAccounts[name] = struct{}{}
 						updatePubkey[name] = true
 					}
+				}
+			}
+
+			// update candidate
+			if strings.HasPrefix(r.FuncName, "vote_producer.iost/") && t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
+				var params []interface{}
+				err := json.Unmarshal([]byte(r.Content), &params)
+				if err == nil && len(params) > 0 {
+					var candidate string
+
+					abi := strings.Split(r.FuncName, "/")[1]
+					switch abi {
+					case "applyRegister", "applyUnregister", "approveRegister", "approveUnregister", "forceUnregister",
+						"unregister", "updateProducer", "logInProducer", "logOutProducer":
+						candidate = params[0].(string)
+					case "vote", "unvote":
+						candidate = params[1].(string)
+					case "voteFor":
+						candidate = params[2].(string)
+					}
+					updatedCandidates[candidate] = struct{}{}
 				}
 			}
 
@@ -517,7 +567,7 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 	}
 
 	wg := new(sync.WaitGroup)
-	wg.Add(2)
+	wg.Add(3)
 	go func() {
 		accountInfos := getAccountsByRPC(updatedAccounts)
 		for _, acc := range accountInfos {
@@ -539,12 +589,21 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 		}
 		wg.Done()
 	}()
+
+	go func() {
+		candidateInfos := getCandidatesByRPC(updatedCandidates)
+		for name, cand := range candidateInfos {
+			candidateB.Upsert(bson.M{"name": name}, bson.M{"$set": bson.M{"candidateInfo": cand}})
+		}
+		wg.Done()
+	}()
 	wg.Wait()
 
-	wg.Add(4)
+	wg.Add(5)
 	go retryWriteMgo(accTxB, wg)
 	go retryWriteMgo(accountB, wg)
 	go retryWriteMgo(contractB, wg)
 	go retryWriteMgo(contractTxB, wg)
+	go retryWriteMgo(candidateB, wg)
 	wg.Wait()
 }
