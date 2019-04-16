@@ -39,7 +39,7 @@ func GetMongoClientWithAuth(address, username, password, db string) (*mgo.Sessio
 
 	// to do. close session
 
-	session.SetMode(mgo.Eventual, true)
+	session.SetMode(mgo.Primary, true)
 	session.SetSocketTimeout(time.Minute)
 
 	mongoSessionMap[address] = session
@@ -70,7 +70,7 @@ func GetMongoClient(address, db string) (*mgo.Session, error) {
 
 	// to do. close session
 
-	session.SetMode(mgo.Eventual, true)
+	session.SetMode(mgo.Primary, true)
 	session.SetSocketTimeout(time.Minute)
 
 	mongoSessionMap[address] = session

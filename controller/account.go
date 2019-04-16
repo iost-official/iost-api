@@ -194,6 +194,7 @@ func GetContractTxs(c echo.Context) error {
 				log.Printf("GetAccountTxNumber panic. err=%v", e)
 			}
 		}()
+		return // query tx count costs too much time
 		s := time.Now().UnixNano()
 		defer wg.Done()
 		totalLen, err := db.GetContractTxNumber(contractID)
