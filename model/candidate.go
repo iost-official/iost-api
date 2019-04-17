@@ -1,12 +1,11 @@
 package model
 
 import (
-	"bufio"
+	"io/ioutil"
 	"log"
-	"os"
-	"strings"
 
 	"github.com/iost-official/iost-api/model/db"
+	"github.com/jszwec/csvutil"
 )
 
 var (
@@ -21,43 +20,21 @@ func init() {
 
 func initOffchainInfos() {
 	candidateFile := "config/candidate.csv"
-	f, err := os.Open(candidateFile)
+	b, err := ioutil.ReadFile(candidateFile)
 	if err != nil {
-		log.Printf("Open candidate file failed. err=%v", err)
+		log.Printf("Reading candidate file failed. err=%v", err)
 		return
 	}
-	defer f.Close()
-
-	br := bufio.NewReader(f)
-	br.ReadString('\n') // skip header
-	for {
-		line, err := br.ReadString('\n')
-		if err != nil {
-			break
-		}
-		arr := strings.Split(line, ",")
-		if len(arr) < 15 {
-			log.Printf("Invalid candidate information line: %s", line)
-			continue
-		}
-		offchainInfos[arr[14]] = &CandidateOffchainInfo{
-			Name:          arr[0],
-			NameEN:        arr[1],
-			Logo:          arr[2],
-			Homepage:      arr[3],
-			Location:      arr[4],
-			LocationEN:    arr[5],
-			Type:          arr[6],
-			TypeEN:        arr[7],
-			Statement:     arr[8],
-			StatementEN:   arr[9],
-			Description:   arr[10],
-			DescriptionEN: arr[11],
-			SocialMedia:   arr[12],
-			SocialMediaEN: arr[13],
-		}
+	var cands []*CandidateOffchainInfo
+	err = csvutil.Unmarshal(b, &cands)
+	if err != nil {
+		log.Printf("Unmarshal csv failed. err=%v", err)
+		return
 	}
-
+	for _, c := range cands {
+		offchainInfos[c.MainnetAccount] = c
+	}
+	log.Printf("%+v", offchainInfos)
 }
 
 type Candidate struct {
@@ -73,20 +50,20 @@ type Candidate struct {
 }
 
 type CandidateOffchainInfo struct {
-	Name          string `json:"name"`
-	NameEN        string `json:"name_en"`
-	Logo          string `json:"logo"`
-	Homepage      string `json:"homepage"`
-	Location      string `json:"location"`
-	LocationEN    string `json:"location_en"`
-	Type          string `json:"type"`
-	TypeEN        string `json:"type_en"`
-	Statement     string `json:"statement"`
-	StatementEN   string `json:"statement_en"`
-	Description   string `json:"description"`
-	DescriptionEN string `json:"description_en"`
-	SocialMedia   string `json:"social_media"`
-	SocialMediaEN string `json:"social_media_en"`
+	Name           string `json:"name" csv:"name"`
+	NameEN         string `json:"name_en" csv:"name_en"`
+	Logo           string `json:"logo" csv:"logo"`
+	Homepage       string `json:"homepage" csv:"team_page"`
+	Location       string `json:"location" csv:"location"`
+	LocationEN     string `json:"location_en" csv:"location_en"`
+	Type           string `json:"type" csv:"type"`
+	TypeEN         string `json:"type_en" csv:"type_en"`
+	Statement      string `json:"statement" csv:"statement"`
+	StatementEN    string `json:"statement_en" csv:"statement_en"`
+	Description    string `json:"description" csv:"description"`
+	DescriptionEN  string `json:"description_en" csv:"description_en"`
+	SocialMedia    string `json:"social_media" csv:"social_media"`
+	MainnetAccount string `json:"-" csv:"mainnet_account"`
 }
 
 func GetCandidates(page, size int) ([]*Candidate, error) {

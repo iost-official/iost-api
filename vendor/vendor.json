@@ -102,6 +102,12 @@
 			"revisionTime": "2018-08-21T05:17:52Z"
 		},
 		{
+			"checksumSHA1": "yIkYzW7bzAD81zHyuCNmEj4+oxQ=",
+			"path": "github.com/gopherjs/gopherjs/js",
+			"revision": "89baedc74dd74098df0c4ba8792e3cf6d722d4d0",
+			"revisionTime": "2018-08-20T05:23:04Z"
+		},
+		{
 			"checksumSHA1": "2VTYyJKuox/hAFf68BS82IdjCXE=",
 			"path": "github.com/hashicorp/hcl",
 			"revision": "8cb6e5b959231cc1119e43259c4a608f9c51a241",
@@ -250,6 +256,12 @@
 			"path": "github.com/iost-official/go-iost/ilog",
 			"revision": "5b5d16c3ed0773ea0fbffd7e26ae162fab74c53a",
 			"revisionTime": "2018-09-04T12:28:55Z"
+		},
+		{
+			"checksumSHA1": "toydhoGMUphsA8+VZp18BG3DAXU=",
+			"path": "github.com/jszwec/csvutil",
+			"revision": "0115205d1ccaac20f9c7e4cdc987adf657c9fbf2",
+			"revisionTime": "2019-03-10T18:44:32Z"
 		},
 		{
 			"checksumSHA1": "Js/yx9fZ3+wH1wZpHNIxSTMIaCg=",
@@ -408,6 +420,12 @@
 			"path": "golang.org/x/crypto/ssh/terminal",
 			"revision": "5b5d16c3ed0773ea0fbffd7e26ae162fab74c53a",
 			"revisionTime": "2018-09-04T12:28:55Z"
+		},
+		{
+			"checksumSHA1": "ThFld47fsBZklOb0BK7HzSJGbJs=",
+			"path": "golang.org/x/sync/errgroup",
+			"revision": "42b317875d0fa942474b76e1b46a6060d720ae6e",
+			"revisionTime": "2018-11-08T00:20:06Z"
 		},
 		{
 			"checksumSHA1": "m5QCvoZ2KaoLTG9VWjYNonM08b8=",
