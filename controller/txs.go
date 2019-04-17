@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/iost-official/iost-api/model/blockchain/rpcpb"
 	"github.com/iost-official/iost-api/model/db"
 )
 
@@ -45,7 +46,8 @@ type TxsOutput struct {
 func NewTxsOutputFromTxStore(tx *db.TxStore, uniqID string) *TxsOutput {
 	ret := &TxsOutput{TxStore: tx, UniqID: uniqID}
 	for _, receipt := range tx.Tx.TxReceipt.Receipts {
-		if receipt.FuncName == "token.iost/transfer" {
+		if receipt.FuncName == "token.iost/transfer" &&
+			tx.Tx.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
 			trans := parseContractDataToTransfer(receipt.Content)
 			if trans != nil {
 				ret.Transfers = append(ret.Transfers, trans)
