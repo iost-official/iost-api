@@ -36,24 +36,25 @@ func initOffchainInfos() {
 			break
 		}
 		arr := strings.Split(line, ",")
-		if len(arr) < 14 {
+		if len(arr) < 15 {
 			log.Printf("Invalid candidate information line: %s", line)
 			continue
 		}
-		offchainInfos[arr[13]] = &CandidateOffchainInfo{
+		offchainInfos[arr[14]] = &CandidateOffchainInfo{
 			Name:          arr[0],
 			NameEN:        arr[1],
 			Logo:          arr[2],
 			Homepage:      arr[3],
 			Location:      arr[4],
-			Type:          arr[5],
-			TypeEN:        arr[6],
-			Statement:     arr[7],
-			StatementEN:   arr[8],
-			Description:   arr[9],
-			DescriptionEN: arr[10],
-			SocialMedia:   arr[11],
-			SocialMediaEN: arr[12],
+			LocationEN:    arr[5],
+			Type:          arr[6],
+			TypeEN:        arr[7],
+			Statement:     arr[8],
+			StatementEN:   arr[9],
+			Description:   arr[10],
+			DescriptionEN: arr[11],
+			SocialMedia:   arr[12],
+			SocialMediaEN: arr[13],
 		}
 	}
 
@@ -77,6 +78,7 @@ type CandidateOffchainInfo struct {
 	Logo          string `json:"logo"`
 	Homepage      string `json:"homepage"`
 	Location      string `json:"location"`
+	LocationEN    string `json:"location_en"`
 	Type          string `json:"type"`
 	TypeEN        string `json:"type_en"`
 	Statement     string `json:"statement"`
