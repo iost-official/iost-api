@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"log"
 
@@ -32,6 +33,12 @@ func initOffchainInfos() {
 		return
 	}
 	for _, c := range cands {
+		if c.SocialMediaRaw != "" {
+			err := json.Unmarshal([]byte(c.SocialMediaRaw), c.SocialMedia)
+			if err != nil {
+				log.Printf("Json decode %s failed. err=%v", c.SocialMediaRaw, err)
+			}
+		}
 		offchainInfos[c.MainnetAccount] = c
 	}
 	log.Printf("%+v", offchainInfos)
@@ -50,20 +57,21 @@ type Candidate struct {
 }
 
 type CandidateOffchainInfo struct {
-	Name           string `json:"name" csv:"name"`
-	NameEN         string `json:"name_en" csv:"name_en"`
-	Logo           string `json:"logo" csv:"logo"`
-	Homepage       string `json:"homepage" csv:"team_page"`
-	Location       string `json:"location" csv:"location"`
-	LocationEN     string `json:"location_en" csv:"location_en"`
-	Type           string `json:"type" csv:"type"`
-	TypeEN         string `json:"type_en" csv:"type_en"`
-	Statement      string `json:"statement" csv:"statement"`
-	StatementEN    string `json:"statement_en" csv:"statement_en"`
-	Description    string `json:"description" csv:"description"`
-	DescriptionEN  string `json:"description_en" csv:"description_en"`
-	SocialMedia    string `json:"social_media" csv:"social_media"`
-	MainnetAccount string `json:"-" csv:"mainnet_account"`
+	Name           string            `json:"name" csv:"name"`
+	NameEN         string            `json:"name_en" csv:"name_en"`
+	Logo           string            `json:"logo" csv:"logo"`
+	Homepage       string            `json:"homepage" csv:"team_page"`
+	Location       string            `json:"location" csv:"location"`
+	LocationEN     string            `json:"location_en" csv:"location_en"`
+	Type           string            `json:"type" csv:"type"`
+	TypeEN         string            `json:"type_en" csv:"type_en"`
+	Statement      string            `json:"statement" csv:"statement"`
+	StatementEN    string            `json:"statement_en" csv:"statement_en"`
+	Description    string            `json:"description" csv:"description"`
+	DescriptionEN  string            `json:"description_en" csv:"description_en"`
+	SocialMediaRaw string            `json:"-" csv:"social_media"`
+	SocialMedia    map[string]string `json:"social_media"`
+	MainnetAccount string            `json:"-" csv:"mainnet_account"`
 }
 
 func GetCandidates(page, size int) ([]*Candidate, error) {
