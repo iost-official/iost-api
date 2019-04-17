@@ -107,6 +107,22 @@ func GetContract(id string, byLongestChain bool) (*rpcpb.Contract, error) {
 	})
 }
 
+func GetProducer(id string, byLongestChain bool) (*rpcpb.GetProducerVoteInfoResponse, error) {
+	conn, err := transport.GetGRPCClient(RPCAddress)
+	if err != nil {
+		return nil, err
+	}
+	client := rpcpb.NewApiServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	return client.GetProducerVoteInfo(ctx, &rpcpb.GetProducerVoteInfoRequest{
+		Account:        id,
+		ByLongestChain: byLongestChain,
+	})
+}
+
 func GetTokenBalance(account, token string, byLongestChain bool) (*rpcpb.GetTokenBalanceResponse, error) {
 	conn, err := transport.GetGRPCClient(RPCAddress)
 	if err != nil {

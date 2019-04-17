@@ -23,6 +23,7 @@ const (
 	CollectionContractTx = "contractTx"
 	CollectionTaskCursor = "taskCursors"
 	CollectionBlockPay   = "blockPays"
+	CollectionCandidate  = "candidate"
 )
 
 func InitConfig() {
