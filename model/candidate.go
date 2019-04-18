@@ -34,14 +34,13 @@ func initOffchainInfos() {
 	}
 	for _, c := range cands {
 		if c.SocialMediaRaw != "" {
-			err := json.Unmarshal([]byte(c.SocialMediaRaw), c.SocialMedia)
+			err := json.Unmarshal([]byte(c.SocialMediaRaw), &c.SocialMedia)
 			if err != nil {
 				log.Printf("Json decode %s failed. err=%v", c.SocialMediaRaw, err)
 			}
 		}
 		offchainInfos[c.MainnetAccount] = c
 	}
-	log.Printf("%+v", offchainInfos)
 }
 
 type Candidate struct {
