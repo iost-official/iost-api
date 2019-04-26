@@ -199,7 +199,7 @@ func GetAccountsByPubkey(pubkey string) ([]*Account, error) {
 		"pubkeys": pubkey,
 	}
 	var accounts []*Account
-	err := accountC.Find(query).All(&accounts)
+	err := accountC.Find(query).Limit(100).All(&accounts)
 	if err != nil {
 		return nil, err
 	}
