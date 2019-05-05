@@ -1,0 +1,8 @@
+.dockerignore
+Dockerfile
+.git*
+.idea
+*.md
+about.md
+*.sh
+*.sw*
