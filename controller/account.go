@@ -224,6 +224,7 @@ func GetAccountTxs(c echo.Context) error {
 
 	var accountTxs []*db.AccountTx
 
+	s := time.Now().UnixNano()
 	pos := c.QueryParam("pos")
 	if pos != "" {
 		offset := c.QueryParam("offset")
@@ -253,6 +254,8 @@ func GetAccountTxs(c echo.Context) error {
 			return err
 		}
 	}
+	s1 := time.Now().UnixNano()
+	log.Printf("GetContractTx costs %d ns, contractId=%v", s1-s, account)
 
 	hashes := make([]string, len(accountTxs))
 	hashToUID := make(map[string]string)
@@ -301,6 +304,7 @@ func GetAccountTxs(c echo.Context) error {
 		output.TxnLen = totalLen
 	}()
 	wg.Wait()
+	log.Printf("GetTxDetailAndCount costs %d ns, contractId: %v", time.Now().UnixNano()-s1, account)
 
 	return c.JSON(http.StatusOK, FormatResponse(output))
 }
