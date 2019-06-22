@@ -292,6 +292,7 @@ func GetAccountTxs(c echo.Context) error {
 			}
 		}()
 		defer wg.Done()
+		return // query tx count costs too much time
 		totalLen, err := db.GetAccountTxNumber(account, onlyTransfer, tokenName)
 		if err != nil {
 			log.Println("GetAccountTxNumber error:", err)
