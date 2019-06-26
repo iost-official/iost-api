@@ -92,10 +92,13 @@ func GetAccountTxByNameAndPos(name, pos string, limit int, onlyTransfer bool, tr
 		sort = "_id"
 		query["_id"] = bson.M{"$gt": bson.ObjectId(d)}
 	}
+	s := time.Now().UnixNano()
+	fmt.Printf("Start query %v", query)
 	err = accountTxC.Find(query).Sort(sort).Limit(limit).All(&accountTxList)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Cost", time.Now().UnixNano()-s)
 	return accountTxList, nil
 }
 
