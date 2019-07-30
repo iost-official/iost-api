@@ -342,12 +342,10 @@ func getCandidatesByRPC(candidates map[string]struct{}) map[string]*rpcpb.GetPro
 	wg.Add(len(candidates))
 	for id := range candidates {
 		go func(id string) {
-			producer, err := blockchain.GetProducer(id, false)
-			if err == nil {
-				m.Lock()
-				ret[id] = producer
-				m.Unlock()
-			}
+			producer, _ := blockchain.GetProducer(id, false)
+			m.Lock()
+			ret[id] = producer
+			m.Unlock()
 			wg.Done()
 		}(id)
 	}
@@ -596,7 +594,11 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64) {
 	go func() {
 		candidateInfos := getCandidatesByRPC(updatedCandidates)
 		for name, cand := range candidateInfos {
-			candidateB.Upsert(bson.M{"name": name}, bson.M{"$set": bson.M{"candidateInfo": cand}})
+			if cand != nil {
+				candidateB.Upsert(bson.M{"name": name}, bson.M{"$set": bson.M{"candidateInfo": cand}})
+			} else {
+				candidateB.Remove(bson.M{"name": name})
+			}
 		}
 		wg.Done()
 	}()
