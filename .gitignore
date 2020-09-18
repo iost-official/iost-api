@@ -3,3 +3,4 @@
 go.sum
 go.mod
 .vscode
+.DS_Store
